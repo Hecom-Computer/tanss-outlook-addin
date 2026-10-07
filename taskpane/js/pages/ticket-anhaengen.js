@@ -117,7 +117,10 @@ export async function render(ctx) {
     items: [],
     recent: [],
     tooMany: false,
+    attachments: realAttachments(),
+    selectedAttachmentIds: new Set(),
   };
+  state.selectedAttachmentIds = new Set(state.attachments.map((attachment) => attachment.id));
 
   const notices = ui.el("div", { class: "stack" });
   const selectedBox = ui.el("div", { class: "stack" });
@@ -269,7 +272,8 @@ export async function render(ctx) {
                 onAction: () => void attach(true),
               })
             : null,
-          ui.el("p", { class: "muted", text: attachmentLabel() }),
+          ui.el("p", { class: "muted", text: attachmentLabel(state.selectedAttachmentIds.size) }),
+          attachmentPicker(),
           mime.currentSource() === "officejs"
             ? ui.el("p", { class: "muted", text: T.mail.reconstructed })
             : null,
@@ -286,16 +290,43 @@ export async function render(ctx) {
   }
 
   /** Anzahl echter Anhaenge; eingebettete Bilder sind fuer den Benutzer keine. */
-  function attachmentLabel() {
-    let count = 0;
+  function realAttachments() {
     try {
-      count = office.getAttachments().filter((attachment) => !attachment.isInline).length;
+      return office.getAttachments().filter((attachment) => !attachment.isInline);
     } catch {
-      count = 0;
+      return [];
     }
+  }
+
+  function attachmentLabel(count) {
     if (count === 0) return T.mail.attachmentsNone;
     if (count === 1) return T.mail.attachmentsOne;
     return t("mail.attachmentsMany", { n: count });
+  }
+
+  function selectedAttachmentIds() {
+    if (state.selectedAttachmentIds.size === state.attachments.length) return undefined;
+    return [...state.selectedAttachmentIds];
+  }
+
+  function attachmentPicker() {
+    if (state.attachments.length === 0) return null;
+    const partialSelection = state.selectedAttachmentIds.size !== state.attachments.length;
+    return ui.section({
+      heading: T.mail.attachmentsSelect,
+      children: [
+        ...state.attachments.map((attachment) => ui.checkbox({
+          label: `${attachment.name || T.app.unknown} (${formatBytes(attachment.size)})`,
+          checked: state.selectedAttachmentIds.has(attachment.id),
+          onChange: (event) => {
+            if (event.target.checked) state.selectedAttachmentIds.add(attachment.id);
+            else state.selectedAttachmentIds.delete(attachment.id);
+            renderSelected();
+          },
+        }).root),
+        partialSelection ? ui.el("p", { class: "field-hint", text: T.mail.attachmentsSelectionRebuild }) : null,
+      ],
+    });
   }
 
   /* ------------------------------------------------------------------ Ablegen */
@@ -315,7 +346,10 @@ export async function render(ctx) {
     statusLine.textContent = T.mail.fetching;
 
     const limit = ctx.me && ctx.me.limits ? Number(ctx.me.limits.maxEmlBytes) || 0 : 0;
-    const mail = await mime.fetchMessageMime({ maxBytes: limit });
+    const mail = await mime.fetchMessageMime({
+      maxBytes: limit,
+      selectedAttachmentIds: selectedAttachmentIds(),
+    });
     if (ctx.signal.aborted) return;
     if (!mail.ok) {
       finish();

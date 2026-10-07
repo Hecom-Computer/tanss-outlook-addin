@@ -157,6 +157,11 @@ export const T = deepFreeze({
     attachmentsOne: "1 Anhang wird mitgegeben.",
     attachmentsMany: "{n} Anhänge werden mitgegeben.",
     attachmentsNone: "Diese Mail hat keine Anhänge.",
+    attachmentsSelect: "Anhänge auswählen",
+    attachmentsSelectionRebuild:
+      "Bei einer Teilauswahl wird die E-Mail aus Outlook neu erstellt; Empfangskette und DKIM-Signatur fehlen dann.",
+    attachmentSelectionUnsupported:
+      "Dieser Outlook-Stand kann einzelne Anhänge nicht auswählen. Bitte alle Anhänge übertragen oder Outlook aktualisieren.",
     reconstructed:
       "Diese Mail wird aus Outlook rekonstruiert, nicht im Original übernommen: " +
       "Empfangskette, DKIM-Signatur und Bezugsverweise fehlen.",
@@ -206,6 +211,7 @@ export const T = deepFreeze({
     similarHint: "Vielleicht gehört diese Mail an ein bestehendes Ticket.",
     similarSwitch: "Stattdessen anhängen",
     optionsFailures: "Nicht abrufbar:",
+    openTickets: "Offene Tickets dieser Firma",
     submit: "Ticket anlegen",
     submitting: "Ticket wird angelegt …",
     successHeading: "Ticket {id} angelegt.",
@@ -389,6 +395,8 @@ export const T = deepFreeze({
       "Outlook hat kein geöffnetes Element gemeldet. Bitte die E-Mail erneut öffnen.",
     CLIENT_OFFICE_FAILED:
       "Outlook hat eine Anfrage des Add-ins abgewiesen. Einzelheiten stehen auf der Diagnoseseite.",
+    CLIENT_ATTACHMENT_SELECTION_UNSUPPORTED:
+      "Dieser Outlook-Stand kann einzelne Anhänge nicht auswählen. Bitte alle Anhänge übertragen oder Outlook aktualisieren.",
     CLIENT_TOO_LARGE:
       "Die E-Mail ist größer als der Dienst annimmt. Sie wurde gar nicht erst übertragen.",
     CLIENT_UNEXPECTED:

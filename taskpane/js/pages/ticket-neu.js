@@ -249,6 +249,7 @@ export async function render(ctx) {
     remitter: data.remitter || null,
     options: data.options || null,
     similar: Array.isArray(data.similarTickets) ? data.similarTickets : [],
+    openTickets: Array.isArray(data.openTickets) ? data.openTickets : [],
     attachedTo: Array.isArray(data.alreadyAttachedTo) ? data.alreadyAttachedTo : [],
     title: data.title || titleFromSubject(message.subject),
     content: quoted.body,
@@ -267,6 +268,8 @@ export async function render(ctx) {
     idempotencyKey: "",
     submitting: false,
   };
+  state.attachments = realAttachments();
+  state.selectedAttachmentIds = new Set(state.attachments.map((attachment) => attachment.id));
 
   /* ---------------------------------------------------------------- Bausteine */
 
@@ -373,6 +376,23 @@ export async function render(ctx) {
                   badgeLabel: ticket.statusName || "",
                   onClick: () => ctx.navigate("#/ticket/anhaengen"),
                 }),
+            }),
+          ],
+        }),
+      );
+    }
+    if (state.openTickets.length > 0) {
+      children.push(
+        ui.section({
+          heading: T.ticketNeu.openTickets,
+          children: [
+            ui.list({
+              items: state.openTickets,
+              renderItem: (ticket) => ui.listRow({
+                title: `${ticket.id}${SEPARATOR}${ticket.title || ""}`,
+                subtitle: ticket.statusName || "",
+                onClick: () => ctx.navigate("#/ticket/anhaengen"),
+              }),
             }),
           ],
         }),
@@ -499,6 +519,7 @@ export async function render(ctx) {
     state.confidence = "none";
     state.remitter = null;
     state.similar = [];
+    state.openTickets = [];
     state.remitterUnverified = false;
     companySearchBox.hidden = true;
     companySearch.input.value = "";
@@ -510,6 +531,20 @@ export async function render(ctx) {
     renderNotices();
     renderActions();
     void loadOptions();
+    void loadOpenTickets();
+  }
+
+  async function loadOpenTickets() {
+    if (!state.company) return;
+    const companyId = state.company.id;
+    const result = await api.get("api/search/tickets", {
+      query: { q: "", companyId, scope: "company", includeDone: false, limit: 10 },
+      signal: ctx.signal,
+    });
+    if (ctx.signal.aborted || !state.company || state.company.id !== companyId) return;
+    if (!result.ok) return;
+    state.openTickets = Array.isArray(result.data.items) ? result.data.items : [];
+    renderNotices();
   }
 
   /** Die Meldersuche vollstaendig abraeumen - Eingabe, Treffer und aufgeklappter Bereich. */
@@ -698,7 +733,8 @@ export async function render(ctx) {
   function departmentsForAssignee(options) {
     const departments = Array.isArray(options.departments) ? options.departments : [];
     if (state.assigneeId === null) return departments;
-    return departments.filter((department) => department.employeeIds.includes(state.assigneeId));
+    return departments.filter((department) => Array.isArray(department.employeeIds)
+      && department.employeeIds.includes(state.assigneeId));
   }
 
   function renderOptions() {
@@ -787,11 +823,11 @@ export async function render(ctx) {
   /* ------------------------------------------------------------------ Absenden */
 
   /** Anzahl echter Anhaenge; eingebettete Bilder sind fuer den Benutzer keine. */
-  function attachmentCount() {
+  function realAttachments() {
     try {
-      return office.getAttachments().filter((attachment) => !attachment.isInline).length;
+      return office.getAttachments().filter((attachment) => !attachment.isInline);
     } catch {
-      return 0;
+      return [];
     }
   }
 
@@ -801,10 +837,37 @@ export async function render(ctx) {
     return t("mail.attachmentsMany", { n: count });
   }
 
+  function selectedAttachmentIds() {
+    if (state.selectedAttachmentIds.size === state.attachments.length) return undefined;
+    return [...state.selectedAttachmentIds];
+  }
+
+  function attachmentPicker() {
+    if (state.attachments.length === 0) return null;
+    const partialSelection = state.selectedAttachmentIds.size !== state.attachments.length;
+    return ui.section({
+      heading: T.mail.attachmentsSelect,
+      children: [
+        ...state.attachments.map((attachment) => ui.checkbox({
+          label: `${attachment.name || T.app.unknown} (${formatBytes(attachment.size)})`,
+          checked: state.selectedAttachmentIds.has(attachment.id),
+          onChange: (event) => {
+            if (event.target.checked) state.selectedAttachmentIds.add(attachment.id);
+            else state.selectedAttachmentIds.delete(attachment.id);
+            markDirty();
+            renderActions();
+          },
+        }).root),
+        partialSelection ? ui.el("p", { class: "field-hint", text: T.mail.attachmentsSelectionRebuild }) : null,
+      ],
+    });
+  }
+
   function renderActions() {
     ui.replace(
       actionBox,
-      ui.el("p", { class: "muted", text: attachmentLabel(attachmentCount()) }),
+      ui.el("p", { class: "muted", text: attachmentLabel(state.selectedAttachmentIds.size) }),
+      attachmentPicker(),
       mime.currentSource() === "officejs"
         ? ui.el("p", { class: "muted", text: T.mail.reconstructed })
         : null,
@@ -872,7 +935,10 @@ export async function render(ctx) {
 
     {
       statusLine.textContent = T.mail.fetching;
-      const mail = await mime.fetchMessageMime({ maxBytes: maxEmlBytes() });
+      const mail = await mime.fetchMessageMime({
+        maxBytes: maxEmlBytes(),
+        selectedAttachmentIds: selectedAttachmentIds(),
+      });
       if (ctx.signal.aborted) return;
       if (!mail.ok) {
         // OHNE MAIL KEIN TICKET. Das Werkzeug ist dazu da, eine E-Mail in TANSS zu
@@ -1001,7 +1067,10 @@ export async function render(ctx) {
   /** Nur der zweite Aufruf - die Dublettentabelle des Dienstes haelt ihn sauber. */
   async function retryMail(ticketId) {
     ctx.clearError();
-    const mail = await mime.fetchMessageMime({ maxBytes: maxEmlBytes() });
+    const mail = await mime.fetchMessageMime({
+      maxBytes: maxEmlBytes(),
+      selectedAttachmentIds: selectedAttachmentIds(),
+    });
     if (ctx.signal.aborted) return;
     if (!mail.ok) {
       ctx.showError(mail.error);

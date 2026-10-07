@@ -69,6 +69,9 @@ function fail(code, message = "") {
  */
 export async function fetchMessageMime(options = {}) {
   const maxBytes = Number(options.maxBytes) > 0 ? Number(options.maxBytes) : 0;
+  const selectedAttachmentIds = Array.isArray(options.selectedAttachmentIds)
+    ? new Set(options.selectedAttachmentIds.map(String))
+    : null;
 
   let context;
   try {
@@ -78,6 +81,13 @@ export async function fetchMessageMime(options = {}) {
   }
   if (!context.itemId) return fail("CLIENT_ITEM_MISSING");
 
+  // Microsoft Graph liefert nur die vollstaendige RFC-822-Nachricht. Fuer eine
+  // Teilauswahl muss deshalb auch bei Exchange Online die nachweisbar gefilterte
+  // Office-Rekonstruktion verwendet werden.
+  if (selectedAttachmentIds !== null) {
+    if (!isSetSupported("Mailbox", "1.8")) return fail("CLIENT_ATTACHMENT_SELECTION_UNSUPPORTED");
+    return buildFromOfficeJs(context, maxBytes, selectedAttachmentIds);
+  }
   return isEnterpriseMailbox()
     ? buildFromOfficeJs(context, maxBytes)
     : fetchFromGraph(context, maxBytes);
@@ -159,9 +169,10 @@ async function fetchFromGraph(context, maxBytes) {
 
 /* --------------------------------------------------- Weg (b) Bordmittel (RFC 822) */
 
-async function buildFromOfficeJs(context, maxBytes) {
+async function buildFromOfficeJs(context, maxBytes, selectedAttachmentIds = null) {
   const warnings = [T.mail.reconstructed];
-  const attachments = safeAttachments();
+  const attachments = safeAttachments().filter((attachment) => attachment.isInline
+    || selectedAttachmentIds === null || selectedAttachmentIds.has(attachment.id));
 
   const canReadAttachments = isSetSupported("Mailbox", "1.8");
   if (!canReadAttachments && attachments.length > 0) {

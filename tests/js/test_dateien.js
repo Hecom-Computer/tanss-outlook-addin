@@ -572,9 +572,24 @@ test("der Firmenwechsel raeumt alles ab, was zur alten Firma gehoerte", () => {
   assert.ok(anfang > -1, "pickCompany gibt es nicht mehr");
   const koerper = quelle.slice(anfang, quelle.indexOf("\n  }", anfang));
 
-  for (const pflicht of ["state.remitter = null", "state.similar = []", "clearRemitterSearch()"]) {
+  for (const pflicht of [
+    "state.remitter = null", "state.similar = []", "state.openTickets = []",
+    "clearRemitterSearch()", "loadOpenTickets()",
+  ]) {
     assert.ok(koerper.includes(pflicht), `pickCompany raeumt nicht ab: ${pflicht} fehlt`);
   }
+});
+
+test("die Ticketmasken reichen eine Anhangsauswahl an den MIME-Bau weiter", () => {
+  for (const datei of ["ticket-neu.js", "ticket-anhaengen.js"]) {
+    const quelle = lies(join(TASKPANE, "js", "pages", datei));
+    assert.ok(quelle.includes("function attachmentPicker()"), `${datei} bietet keine Anhangsauswahl`);
+    assert.ok(quelle.includes("selectedAttachmentIds: selectedAttachmentIds()"),
+      `${datei} reicht die Auswahl nicht weiter`);
+  }
+  const mime = lies(join(TASKPANE, "js", "mime.js"));
+  assert.ok(mime.includes("selectedAttachmentIds = null"),
+    "mime.js kann keine gefilterte Anhangsliste entgegennehmen");
 });
 
 test("die Meldersuche prueft die Firma nach dem Warten erneut", () => {
