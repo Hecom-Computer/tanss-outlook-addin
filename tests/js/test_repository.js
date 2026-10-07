@@ -234,6 +234,22 @@ test("Status kommen sortiert und nur aktiv", async () => {
   assert.deepEqual(options.states.map((s) => s.id), [1, 2]);
 });
 
+test("Abteilungen werden mit ihrer Mitarbeiterzuordnung geladen", async () => {
+  const client = fakeClient({
+    "GET /api/v1/admin/ticketTypes": { content: [] },
+    "GET /api/v1/admin/ticketStates": { content: [] },
+    "GET /api/v1/employees/technicians": { content: [] },
+    "GET /api/v1/companies/departments": {
+      content: [{ id: 8, name: "Support", employeeIds: [5] }],
+    },
+  });
+  const options = await new TanssRepository({ client, config: {} }).ticketOptions({});
+
+  assert.deepEqual(options.departments, [{ id: 8, name: "Support", employeeIds: [5] }]);
+  assert.deepEqual(client.calls.find((call) => call.path === "/api/v1/companies/departments")
+    .options.query, { withEmployees: true });
+});
+
 test("eine ausgefallene Auswahlliste bleibt leer und reisst nichts mit", async () => {
   // Der Ausfall einer Liste darf die Maske nicht verschliessen: Ein Ticket laesst sich
   // auch ohne Status und ohne Zuweisung anlegen, und die Alternative waere ein Pane, das
@@ -247,7 +263,8 @@ test("eine ausgefallene Auswahlliste bleibt leer und reisst nichts mit", async (
   assert.deepEqual(options.states, []);
   assert.deepEqual(options.technicians, []);
   assert.deepEqual(options.types, [{ id: 1, name: "Störung" }], "was da ist, bleibt da");
-  assert.equal(options.failures.length, 2, "und beide Ausfaelle werden benannt");
+  assert.deepEqual(options.departments, []);
+  assert.equal(options.failures.length, 3, "und alle Ausfaelle werden benannt");
 });
 
 test("Leistungsarten fallen auf die konfigurierte Vorgabe zurueck", async () => {
@@ -667,6 +684,17 @@ test("eine gewaehlte Stufe geht unter dem Namen mit, den TANSS liest", () => {
   // `priority`, nicht `priorityId`. Ein falscher Name wuerde still verworfen, und das
   // Pane meldete eine Dringlichkeit, die es am Ticket nicht gibt.
   assert.equal(ticketWrite({ companyId: 3, title: "x", priority: 7 }).priority, 7);
+});
+
+test("Abteilung und getrennte Abrechnung werden mit ihren TANSS-Feldnamen geschrieben", () => {
+  const body = ticketWrite({
+    companyId: 3,
+    title: "x",
+    assignedToDepartmentId: 8,
+    separateBilling: true,
+  });
+  assert.equal(body.assignedToDepartmentId, 8);
+  assert.equal(body.separateBilling, true);
 });
 
 test("nur 1 bis 9 gelten als Stufe", () => {

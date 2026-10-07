@@ -133,6 +133,10 @@ test("ein Lizenzproblem bleibt ein Lizenzproblem, auch als HTTP 500", () => {
 test("der Fehlername schlaegt den Status", () => {
   assert.equal(codeFor(400, { error: { text: "INVALID_EML" } }).code, "MAIL_UNPARSABLE");
   assert.equal(
+    codeFor(403, { error: { text: "REMITTER_IS_A_MANDATORY_FIELD" } }).code,
+    "REMITTER_REQUIRED",
+  );
+  assert.equal(
     codeFor(500, { error: { text: "CHANGES_WERE_DISCARDED" } }).code,
     "APPOINTMENT_READONLY",
   );

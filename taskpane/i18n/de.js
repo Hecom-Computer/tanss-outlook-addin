@@ -200,6 +200,8 @@ export const T = deepFreeze({
     priority: "Priorität",
     priorityDefault: "— Vorgabe von TANSS —",
     assignee: "Zuweisung",
+    department: "Abteilung",
+    separateBilling: "Eigenständig abrechnen",
     similarHeading: "Ähnliche Tickets",
     similarHint: "Vielleicht gehört diese Mail an ein bestehendes Ticket.",
     similarSwitch: "Stattdessen anhängen",
@@ -324,7 +326,8 @@ export const T = deepFreeze({
       "Es wird bewusst nicht geraten — der Administrator muss die Zuordnung festlegen.",
     FORBIDDEN_NO_COMPANY_ACCESS:
       "Für diese Firma fehlt in TANSS die Berechtigung. Der Vorgang wurde nicht ausgeführt.",
-    REMITTER_REQUIRED: "Für diese Firma verlangt TANSS einen Melder.",
+    REMITTER_REQUIRED:
+      "Für diese Firma ist ein Melder Pflicht. Bitte einen Ansprechpartner auswählen.",
     TITLE_REQUIRED: "Ohne Titel kann kein Ticket angelegt werden.",
     MAIL_TOO_LARGE: "Die E-Mail ist größer als die zugelassene Höchstgröße.",
     MAIL_UNPARSABLE:

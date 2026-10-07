@@ -361,7 +361,7 @@ export class TanssRepository {
     const failures = [];
 
     const rules = TanssRepository.FIELD_RULES;
-    const [types, states, technicians] = await Promise.all([
+    const [types, states, technicians, departments] = await Promise.all([
       // Neben den Ticketstatus, und aus demselben Grund erreichbar: Das "admin" im Pfad
       // ist ein Namensteil, keine Rollenforderung - diese Flaeche liegt unter derselben
       // Rolle wie der uebrige Fachzugriff. Es gibt eine zweite, dokumentierte Typenliste
@@ -383,6 +383,14 @@ export class TanssRepository {
         .map(namedId), failures),
       this._list("/api/v1/employees/technicians", signal,
         (raw) => raw.filter((item) => item && item.id).map(namedId), failures),
+      this._list("/api/v1/companies/departments", signal,
+        (raw) => raw.filter((item) => item && item.id).map((item) => ({
+          id: num(item.id),
+          name: str(item.name) || String(item.id),
+          employeeIds: Array.isArray(item.employeeIds)
+            ? item.employeeIds.map(num).filter(Boolean)
+            : [],
+        })), failures, { withEmployees: true }),
     ]);
 
     const options = {
@@ -393,6 +401,7 @@ export class TanssRepository {
       types: types.length > 0 ? types : (this.config.ticketTypes || []),
       states,
       technicians,
+      departments,
       ...rules,
       failures,
     };
@@ -433,9 +442,9 @@ export class TanssRepository {
    * das untersuchen soll, faengt bei null an - obwohl der Grund im Augenblick des
    * Scheiterns vorlag.
    */
-  async _list(path, signal, shape, failures = null) {
+  async _list(path, signal, shape, failures = null, query = {}) {
     try {
-      const raw = (await this.client.get(path, { signal })) || [];
+      const raw = (await this.client.get(path, { signal, query })) || [];
       return shape(Array.isArray(raw) ? raw : []);
     } catch (error) {
       if (failures) failures.push({ path, reason: reasonOf(error) });

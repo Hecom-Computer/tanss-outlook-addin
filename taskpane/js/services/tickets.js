@@ -352,6 +352,8 @@ function readTicket(form) {
     typeId: Number(body.typeId) || 0,
     statusId: Number(body.statusId) || 0,
     assignedToEmployeeId: Number(body.assignedToEmployeeId) || 0,
+    assignedToDepartmentId: Number(body.assignedToDepartmentId) || 0,
+    separateBilling: body.separateBilling === true,
     // `null` heisst: nicht mitsenden. Dann setzt TANSS seine eigene Vorgabe - die ist je
     // Instanz eingestellt und gehoert nicht hierher.
     priority: priorityOrNull(body.priority),

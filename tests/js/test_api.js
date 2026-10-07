@@ -225,7 +225,7 @@ const OPTIONEN = {
   "GET /api/v1/tickets/": { content: {}, meta: {} },
   "GET /api/v1/admin/ticketStates": { content: [] },
   "GET /api/v1/employees/technicians": { content: [] },
-  "GET /api/v1/employees/departments": { content: [] },
+  "GET /api/v1/companies/departments": { content: [] },
 };
 
 test("ohne Titel entsteht kein Ticket", async () => {
@@ -378,27 +378,20 @@ test("ein unbekannter Zustand faellt weiterhin auf den Sammelfall", async () => 
   assert.equal(result.error.code, "INTERNAL");
 });
 
-test("die Maske bietet gar kein Abteilungsfeld mehr an", async () => {
-  // Anbieten liesse sich nur die vollstaendige Liste der Instanz - und daraus einen
-  // Eintrag zu waehlen, dem der zugewiesene Techniker nicht angehoert, ist in TANSS eine
-  // Zuweisung, die niemanden erreicht. Sie faellt niemandem auf, weil beide Felder fuer
-  // sich betrachtet gueltig aussehen.
-  //
-  // Auf die Abteilungen des Technikers einzuschraenken ist mit seinem Token nicht
-  // moeglich; beide Wege sind gebaut und gemessen worden. Damit blieb die Wahl zwischen
-  // einem Feld, das in die Irre fuehren kann, und keinem Feld.
+test("die Ticketoptionen enthalten auch im Zwischenspeicher eine Abteilungsliste", async () => {
   routes = {
     "GET /api/v1/admin/ticketTypes": { content: [] },
     "GET /api/v1/admin/ticketStates": { content: [] },
     "GET /api/v1/employees/technicians": { content: [{ id: 5, name: "Anna" }] },
+    "GET /api/v1/companies/departments": {
+      content: [{ id: 8, name: "Support", employeeIds: [5] }],
+    },
   };
   calls.length = 0;
 
   const result = await api.get("api/tickets/options", { query: {} });
   assert.equal(result.ok, true);
-  assert.equal("departments" in result.data, false);
-  assert.equal(calls.some((c) => c.path === "/api/v1/employees/departments"), false,
-    "die Liste wird nicht mehr geholt - ein Abruf bei jedem Oeffnen weniger");
+  assert.ok(Array.isArray(result.data.departments));
 });
 
 test("ohne die E-Mail entsteht kein Ticket", async () => {

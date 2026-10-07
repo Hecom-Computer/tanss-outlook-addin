@@ -261,6 +261,8 @@ export async function render(ctx) {
     priority: null,
     statusId: numberOrNull(prefs[PREF_STATUS]),
     assigneeId: numberOrNull(prefs[PREF_ASSIGNEE]),
+    departmentId: null,
+    separateBilling: false,
     /** Leer heisst: der naechste Absendeversuch ist ein NEUER Vorgang. */
     idempotencyKey: "",
     submitting: false,
@@ -381,6 +383,19 @@ export async function render(ctx) {
       children.push(ui.banner({ tone: "warn", label: warning }));
     }
     ui.replace(notices, ...children);
+  }
+
+  async function loadOptions() {
+    const result = await api.get("api/tickets/options", { query: {}, signal: ctx.signal });
+    if (ctx.signal.aborted) return;
+    if (!result.ok) {
+      ctx.showError(result.error);
+      return;
+    }
+    state.options = result.data || {};
+    clampSelections();
+    renderNotices();
+    renderOptions();
   }
 
   /* -------------------------------------------------------------------- Firma */
@@ -673,10 +688,17 @@ export async function render(ctx) {
     if (!contains(options.types, state.typeId)) state.typeId = null;
     if (!contains(options.states, state.statusId)) state.statusId = null;
     if (!contains(options.technicians, state.assigneeId)) state.assigneeId = null;
+    if (!contains(departmentsForAssignee(options), state.departmentId)) state.departmentId = null;
 
     const defaults = ctx.me && ctx.me.defaults ? ctx.me.defaults : {};
     const fallbackType = numberOrNull(defaults.ticketTypeId);
     if (state.typeId === null && contains(options.types, fallbackType)) state.typeId = fallbackType;
+  }
+
+  function departmentsForAssignee(options) {
+    const departments = Array.isArray(options.departments) ? options.departments : [];
+    if (state.assigneeId === null) return departments;
+    return departments.filter((department) => department.employeeIds.includes(state.assigneeId));
   }
 
   function renderOptions() {
@@ -729,6 +751,23 @@ export async function render(ctx) {
         void loadOptions();
       },
     });
+    const departmentSelect = ui.select({
+      options: toSelectOptions(departmentsForAssignee(options)),
+      value: state.departmentId,
+      placeholder: T.app.none,
+      onChange: () => {
+        state.departmentId = numberOrNull(departmentSelect.value);
+        markDirty();
+      },
+    });
+    const separateBilling = ui.checkbox({
+      label: T.ticketNeu.separateBilling,
+      checked: state.separateBilling,
+      onChange: () => {
+        state.separateBilling = separateBilling.input.checked;
+        markDirty();
+      },
+    });
 
     ui.replace(
       optionsBox,
@@ -740,6 +779,8 @@ export async function render(ctx) {
         control: assigneeSelect,
         required: options.forceAssignment === true,
       }),
+      ui.field({ label: T.ticketNeu.department, control: departmentSelect }),
+      separateBilling.root,
     );
   }
 
@@ -824,6 +865,8 @@ export async function render(ctx) {
         priority: state.priority,
         statusId: state.statusId,
         assignedToEmployeeId: state.assigneeId,
+        assignedToDepartmentId: state.departmentId,
+        separateBilling: state.separateBilling,
       }),
     );
 
