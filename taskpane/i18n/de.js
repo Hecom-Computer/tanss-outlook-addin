@@ -182,14 +182,16 @@ export const T = deepFreeze({
     companyBranch: "Filiale",
     companyUnknown: "nicht erkannt — bitte auswählen",
     companyChange: "Andere Firma wählen",
-    remitter: "Melder",
+    remitter: "Ansprechpartner",
     companyFirst:
       "Bitte zuerst die Firma wählen. Ohne sie ginge die Suche über alle Kunden, und der " +
       "gewählte Ansprechpartner gehörte am Ende zu keinem davon.",
     remitterUnverified:
       "Zu mindestens einem Treffer nennt TANSS keine Firmenzuordnung. Ob er wirklich zu " +
       "dieser Firma gehört, ist hier nicht feststellbar — bitte vor dem Anlegen prüfen.",
-    remitterUnknown: "Der Absender ist in TANSS nicht bekannt.",
+    remitterUnknown: "Bitte einen hinterlegten Ansprechpartner auswählen.",
+    remitterLoading: "Ansprechpartner werden geladen …",
+    remitterNone: "Für diese Firma sind keine Ansprechpartner hinterlegt.",
     remitterCreate: "Als Kontakt anlegen",
     remitterFirstName: "Vorname",
     remitterLastName: "Nachname",
@@ -207,6 +209,10 @@ export const T = deepFreeze({
     assignee: "Zuweisung",
     department: "Abteilung",
     separateBilling: "Eigenständig abrechnen",
+    summary: "Prüfung vor dem Anlegen",
+    summaryAttachments: "Anhänge",
+    attachmentSize: "Ausgewählt: {size}",
+    attachmentSizeWarning: "Die ausgewählten Anhänge sind größer als das zulässige Mail-Limit. Bitte Auswahl reduzieren.",
     similarHeading: "Ähnliche Tickets",
     similarHint: "Vielleicht gehört diese Mail an ein bestehendes Ticket.",
     similarSwitch: "Stattdessen anhängen",
@@ -333,7 +339,7 @@ export const T = deepFreeze({
     FORBIDDEN_NO_COMPANY_ACCESS:
       "Für diese Firma fehlt in TANSS die Berechtigung. Der Vorgang wurde nicht ausgeführt.",
     REMITTER_REQUIRED:
-      "Für diese Firma ist ein Melder Pflicht. Bitte einen Ansprechpartner auswählen.",
+      "Bitte einen Ansprechpartner auswählen, bevor das Ticket angelegt wird.",
     TITLE_REQUIRED: "Ohne Titel kann kein Ticket angelegt werden.",
     MAIL_TOO_LARGE: "Die E-Mail ist größer als die zugelassene Höchstgröße.",
     MAIL_UNPARSABLE:

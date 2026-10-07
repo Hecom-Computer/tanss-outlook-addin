@@ -232,6 +232,15 @@ export class TanssRepository {
     return { items, tooMany: tooMany(meta), unverified };
   }
 
+  /** Alle hinterlegten Ansprechpartner einer Firma, ohne Volltextsuche. */
+  async companyEmployees(companyId, { signal } = {}) {
+    const raw = await this.client.get(`/api/v1/companies/${num(companyId)}/employees`, { signal });
+    return (Array.isArray(raw) ? raw : [])
+      .map(employeeRow)
+      .filter((row) => row.id && row.inactive !== true)
+      .sort((a, b) => String(a.name).localeCompare(String(b.name), "de"));
+  }
+
   /**
    * Ticketsuche.
    *

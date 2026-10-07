@@ -94,6 +94,7 @@ const ROUTES = [
 
   ["GET", /^api\/search\/companies$/, (m, q, o) => search.searchCompanies(q, o), { auth: true }],
   ["GET", /^api\/search\/employees$/, (m, q, o) => search.searchEmployees(q, o), { auth: true }],
+  ["GET", /^api\/companies\/(\d+)\/contacts$/, (m, q, o) => search.companyContacts(Number(m[1]), o), { auth: true }],
   ["GET", /^api\/search\/tickets$/, (m, q, o) => search.searchTickets(q, o), { auth: true }],
   ["POST", /^api\/companies\/(\d+)\/contacts$/, (m, body, o) => search.createContact(Number(m[1]), body, o), { auth: true }],
 

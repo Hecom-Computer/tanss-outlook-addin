@@ -43,6 +43,12 @@ export async function searchEmployees({ q, companyId = null, limit = 25 }, { sig
   });
 }
 
+/** Hinterlegte Ansprechpartner einer Firma fuer die Auswahlliste der Ticketmaske. */
+export async function companyContacts(companyId, { signal } = {}) {
+  if (!Number(companyId)) return [];
+  return repository().companyEmployees(companyId, { signal });
+}
+
 /**
  * Ticketsuche fuer "An Ticket anhaengen" und die Ticketzuordnung im Termin.
  *

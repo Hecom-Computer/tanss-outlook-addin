@@ -565,8 +565,8 @@ test("der Firmenwechsel raeumt alles ab, was zur alten Firma gehoerte", () => {
   // Die Maske hat keinen Unit-Test - es gibt kein DOM. Die dauerhafte Sperre steht
   // deshalb im Repository und ist dort geprueft. Dieser Waechter haelt nur die zweite
   // Haelfte fest: dass beim Firmenwechsel auch das SICHTBARE verschwindet. Genau daran
-  // hing der gemeldete Fehler - `state.remitter` wurde verworfen, die Trefferliste der
-  // alten Firma blieb stehen und anklickbar.
+  // hing der gemeldete Fehler - `state.remitter` wurde verworfen, eine alte Liste blieb
+  // aber stehen und war fuer die neue Firma noch waehlbar.
   const quelle = lies(join(TASKPANE, "js", "pages", "ticket-neu.js"));
   const anfang = quelle.indexOf("function pickCompany(");
   assert.ok(anfang > -1, "pickCompany gibt es nicht mehr");
@@ -574,7 +574,7 @@ test("der Firmenwechsel raeumt alles ab, was zur alten Firma gehoerte", () => {
 
   for (const pflicht of [
     "state.remitter = null", "state.similar = []", "state.openTickets = []",
-    "clearRemitterSearch()", "loadOpenTickets()",
+    "state.contacts = []", "loadOpenTickets()", "loadContacts()",
   ]) {
     assert.ok(koerper.includes(pflicht), `pickCompany raeumt nicht ab: ${pflicht} fehlt`);
   }
@@ -592,14 +592,14 @@ test("die Ticketmasken reichen eine Anhangsauswahl an den MIME-Bau weiter", () =
     "mime.js kann keine gefilterte Anhangsliste entgegennehmen");
 });
 
-test("die Meldersuche prueft die Firma nach dem Warten erneut", () => {
-  // Eine noch laufende Suche liefert nach dem Firmenwechsel nach. Ihr Ergebnis gehoert
+test("die Ansprechpartnerliste prueft die Firma nach dem Warten erneut", () => {
+  // Eine noch laufende Abfrage liefert nach dem Firmenwechsel nach. Ihr Ergebnis gehoert
   // zur ALTEN Firma und darf in der neuen Maske weder erscheinen noch anklickbar sein.
   // Das `signal` faengt das nicht: Es faellt beim Seitenwechsel, nicht beim
   // Firmenwechsel.
   const quelle = lies(join(TASKPANE, "js", "pages", "ticket-neu.js"));
-  const anfang = quelle.indexOf("async function searchEmployees(");
-  assert.ok(anfang > -1, "searchEmployees gibt es nicht mehr");
+  const anfang = quelle.indexOf("async function loadContacts(");
+  assert.ok(anfang > -1, "loadContacts gibt es nicht");
   const koerper = quelle.slice(anfang, quelle.indexOf("\n  }", anfang));
 
   assert.ok(/const\s+\w+\s*=\s*state\.company\.id/.test(koerper),
@@ -609,6 +609,24 @@ test("die Meldersuche prueft die Firma nach dem Warten erneut", () => {
   const nachDemWarten = koerper.slice(koerper.indexOf("await"));
   assert.ok(/state\.company\.id\s*!==/.test(nachDemWarten),
     "nach dem Warten wird die Firma nicht gegen die festgehaltene geprueft");
+});
+
+test("die Ticketmaske zeigt nur eine Ansprechpartnerliste, keine Meldersuche", () => {
+  const quelle = lies(join(TASKPANE, "js", "pages", "ticket-neu.js"));
+  assert.ok(quelle.includes("api/companies/${companyId}/contacts"),
+    "die Ansprechpartner kommen nicht von der gewaehlten Firma");
+  assert.ok(!quelle.includes("function searchEmployees("),
+    "die alte freie Meldersuche ist noch vorhanden");
+  assert.ok(!quelle.includes("remitterSearch"),
+    "die alte Suchfeldeingabe ist noch vorhanden");
+});
+
+test("die Ticketmaske sperrt ohne Ansprechpartner und bei zu grossen Anhaengen", () => {
+  const quelle = lies(join(TASKPANE, "js", "pages", "ticket-neu.js"));
+  assert.ok(quelle.includes("state.remitter === null || tooLarge"),
+    "Ticket anlegen bleibt trotz fehlendem Ansprechpartner oder zu grosser Auswahl aktiv");
+  assert.ok(quelle.includes("function reviewSummary()"),
+    "es gibt keine Zusammenfassung vor dem Anlegen");
 });
 
 test("das Pane ruft nur Flaechen auf, die seine Tokenart erreicht", () => {

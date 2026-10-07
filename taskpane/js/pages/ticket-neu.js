@@ -247,6 +247,8 @@ export async function render(ctx) {
     company: data.company && data.company.id ? data.company : null,
     confidence: data.company ? String(data.company.confidence || "none") : "none",
     remitter: data.remitter || null,
+    contacts: [],
+    contactsLoading: false,
     options: data.options || null,
     similar: Array.isArray(data.similarTickets) ? data.similarTickets : [],
     openTickets: Array.isArray(data.openTickets) ? data.openTickets : [],
@@ -278,8 +280,6 @@ export async function render(ctx) {
   const companySearchBox = ui.el("div", { class: "stack", props: { hidden: true } });
   const companyResults = ui.el("div", { class: "stack" });
   const remitterBox = ui.el("div", { class: "stack" });
-  const remitterExtraBox = ui.el("div", { class: "stack", props: { hidden: true } });
-  const remitterResults = ui.el("div", { class: "stack" });
   const optionsBox = ui.el("div", { class: "stack" });
   const actionBox = ui.el("div", { class: "stack" });
   const statusLine = ui.el("p", { class: "muted" });
@@ -518,13 +518,13 @@ export async function render(ctx) {
     };
     state.confidence = "none";
     state.remitter = null;
+    state.contacts = [];
     state.similar = [];
     state.openTickets = [];
     state.remitterUnverified = false;
     companySearchBox.hidden = true;
     companySearch.input.value = "";
     ui.clear(companyResults);
-    clearRemitterSearch();
     markDirty();
     renderCompany();
     renderRemitter();
@@ -532,6 +532,7 @@ export async function render(ctx) {
     renderActions();
     void loadOptions();
     void loadOpenTickets();
+    void loadContacts();
   }
 
   async function loadOpenTickets() {
@@ -545,14 +546,6 @@ export async function render(ctx) {
     if (!result.ok) return;
     state.openTickets = Array.isArray(result.data.items) ? result.data.items : [];
     renderNotices();
-  }
-
-  /** Die Meldersuche vollstaendig abraeumen - Eingabe, Treffer und aufgeklappter Bereich. */
-  function clearRemitterSearch() {
-    remitterExtraBox.hidden = true;
-    remitterExtraBox.dataset.mode = "";
-    remitterSearch.input.value = "";
-    ui.clear(remitterResults);
   }
 
   /**
@@ -581,134 +574,62 @@ export async function render(ctx) {
     return company.displayId ? `${name} (${company.displayId})` : name;
   }
 
-  /* -------------------------------------------------------------------- Melder */
-
-  const remitterSearch = ui.searchField({
-    placeholder: T.app.searchPlaceholder,
-    minChars: 2,
-    onSearch: (term) => void searchEmployees(term),
-  });
+  /* ------------------------------------------------------------ Ansprechpartner */
 
   function renderRemitter() {
-    const children = [];
-    if (state.remitter) {
-      children.push(
-        ui.el("div", { class: "field" }, [
-          ui.el("div", { class: "field-label", text: T.ticketNeu.remitter }),
-          ui.row([
-            ui.chip({ label: state.remitter.name || "", tone: "strong" }),
-            ui.button({
-              label: T.app.search,
-              variant: "ghost",
-              onClick: () => toggleRemitterExtra("search"),
-            }),
-          ]),
-          state.remitter.email
-            ? ui.el("div", { class: "field-hint", text: state.remitter.email })
-            : null,
-        ]),
-      );
-    } else {
-      children.push(
-        ui.el("div", { class: "field" }, [
-          ui.el("div", { class: "field-label", text: T.ticketNeu.remitter }),
-          ui.banner({ tone: "info", label: T.ticketNeu.remitterUnknown }),
-          ui.row([
-            ui.button({
-              label: T.app.search,
-              variant: "ghost",
-              onClick: () => toggleRemitterExtra("search"),
-            }),
-          ]),
-        ]),
-      );
-    }
-    ui.replace(remitterBox, ...children, remitterExtraBox);
-  }
-
-  /** Schaltet zwischen Suchfeld und Anlegen-Formular um; ein zweiter Klick klappt zu. */
-  function toggleRemitterExtra(mode) {
-    if (remitterExtraBox.dataset.mode === mode && remitterExtraBox.hidden === false) {
-      remitterExtraBox.hidden = true;
-      return;
-    }
-    remitterExtraBox.dataset.mode = mode;
-    remitterExtraBox.hidden = false;
-    ui.replace(remitterExtraBox, remitterSearch.root, remitterResults);
-    remitterSearch.focus();
-  }
-
-  async function searchEmployees(term) {
-    if (term === "") {
-      ui.clear(remitterResults);
-      return;
-    }
-
-    // Ohne gewaehlte Firma wird gar nicht erst gesucht. Eine firmenlose Suche liefe ueber
-    // ALLE Kunden, und jeder Treffer waere anklickbar - ein Melder, der nirgends
-    // hingehoert. Erst die Firma, dann die Person.
     if (!state.company) {
-      ui.replace(remitterResults, ui.banner({ tone: "info", label: T.ticketNeu.companyFirst }));
+      ui.replace(remitterBox, ui.banner({ tone: "info", label: T.ticketNeu.companyFirst }));
       return;
     }
-
-    // Die Firma wird FESTGEHALTEN, nicht nachgeschlagen. Zwischen Absenden und Antwort
-    // kann der Techniker die Firma gewechselt haben; eine Antwort zur alten Firma darf in
-    // der neuen Maske weder erscheinen noch anklickbar sein. Ein `signal` faengt das
-    // nicht: Es faellt beim Seitenwechsel, nicht beim Firmenwechsel.
-    const gesuchteFirma = state.company.id;
-
-    remitterSearch.setBusy(true);
-    ui.replace(remitterResults, ui.loading(T.app.searching));
-    const result = await api.get("api/search/employees", {
-      query: { q: term, companyId: gesuchteFirma },
-      signal: ctx.signal,
+    if (state.contactsLoading) {
+      ui.replace(remitterBox, ui.loading(T.ticketNeu.remitterLoading));
+      return;
+    }
+    const contacts = state.contacts.slice();
+    if (state.remitter && !contacts.some((contact) => contact.id === state.remitter.id)) {
+      contacts.unshift(state.remitter);
+    }
+    const select = ui.select({
+      options: contacts.map((contact) => ({
+        value: contact.id,
+        label: contact.email ? `${contact.name} (${contact.email})` : contact.name,
+      })),
+      value: state.remitter ? state.remitter.id : null,
+      placeholder: T.app.none,
+      onChange: () => {
+        state.remitter = contacts.find((contact) => contact.id === Number(select.value)) || null;
+        markDirty();
+        renderActions();
+      },
     });
-    if (ctx.signal.aborted) return;
-    if (!state.company || state.company.id !== gesuchteFirma) {
-      ui.clear(remitterResults);
-      return;
-    }
-    remitterSearch.setBusy(false);
+    ui.replace(
+      remitterBox,
+      ui.field({ label: T.ticketNeu.remitter, control: select, required: true }),
+      contacts.length === 0
+        ? ui.banner({ tone: "warn", label: T.ticketNeu.remitterNone })
+        : (!state.remitter ? ui.banner({ tone: "info", label: T.ticketNeu.remitterUnknown }) : null),
+    );
+  }
+
+  async function loadContacts() {
+    if (!state.company) return;
+    const companyId = state.company.id;
+    state.contactsLoading = true;
+    renderRemitter();
+    const result = await api.get(`api/companies/${companyId}/contacts`, { query: {}, signal: ctx.signal });
+    if (ctx.signal.aborted || !state.company || state.company.id !== companyId) return;
+    state.contactsLoading = false;
     if (!result.ok) {
       ctx.showError(result.error);
-      ui.clear(remitterResults);
-      return;
+      state.contacts = [];
+    } else {
+      state.contacts = Array.isArray(result.data) ? result.data : [];
+      if (state.remitter && !state.contacts.some((contact) => contact.id === state.remitter.id)) {
+        state.remitter = null;
+      }
     }
-    const items = Array.isArray(result.data.items) ? result.data.items : [];
-
-    // Die Trefferliste ist bereits im Repository nach der Firma gefiltert. Dass die
-    // Zuordnung nicht in jedem Fall FESTSTELLBAR ist, wird gesagt statt verschwiegen:
-    // Nennt TANSS an einer Zeile keine Firma, laesst sich nicht pruefen, ob sie passt.
-    state.remitterUnverified = result.data.unverified === true;
-
-    ui.replace(
-      remitterResults,
-      result.data.tooMany ? ui.banner({ tone: "warn", label: T.app.tooMany }) : null,
-      state.remitterUnverified
-        ? ui.banner({ tone: "warn", label: T.ticketNeu.remitterUnverified })
-        : null,
-      ui.list({
-        items,
-        renderItem: (employee) =>
-          ui.listRow({
-            title: employee.name || String(employee.id),
-            subtitle: employee.email || "",
-            onClick: () => {
-              // Zweite Sperre, unmittelbar am Klick. Die erste steht im Repository; diese
-              // hier faengt den Fall ab, dass eine Liste aus anderem Grund stehen blieb.
-              if (!state.company || state.company.id !== gesuchteFirma) {
-                clearRemitterSearch();
-                return;
-              }
-              state.remitter = employee;
-              remitterExtraBox.hidden = true;
-              markDirty();
-              renderRemitter();
-            },
-          }),
-      }),
-    );
+    renderRemitter();
+    renderActions();
   }
 
   /**
@@ -863,9 +784,46 @@ export async function render(ctx) {
     });
   }
 
+  function selectedAttachmentBytes() {
+    return state.attachments
+      .filter((attachment) => state.selectedAttachmentIds.has(attachment.id))
+      .reduce((sum, attachment) => sum + (Number(attachment.size) || 0), 0);
+  }
+
+  function selectedName(items, id) {
+    const found = Array.isArray(items) && items.find((item) => item.id === id);
+    return found ? found.name : T.app.none;
+  }
+
+  function reviewSummary() {
+    const options = state.options || {};
+    const selectedBytes = selectedAttachmentBytes();
+    const limit = maxEmlBytes();
+    return ui.section({
+      heading: T.ticketNeu.summary,
+      children: [
+        ui.kv([
+          [T.ticketNeu.company, state.company ? companyLabel(state.company) : T.app.none],
+          [T.ticketNeu.remitter, state.remitter ? state.remitter.name : T.app.none],
+          [T.ticketNeu.department, selectedName(options.departments, state.departmentId)],
+          [T.ticketNeu.type, selectedName(options.types, state.typeId)],
+          [T.ticketNeu.priority, state.priority === null ? T.ticketNeu.priorityDefault : String(state.priority)],
+          [T.ticketNeu.assignee, selectedName(options.technicians, state.assigneeId)],
+          [T.ticketNeu.summaryAttachments, t("ticketNeu.attachmentSize", { size: formatBytes(selectedBytes) })],
+        ]),
+        limit > 0 && selectedBytes > limit
+          ? ui.banner({ tone: "warn", label: T.ticketNeu.attachmentSizeWarning })
+          : null,
+      ],
+    });
+  }
+
   function renderActions() {
+    const selectedBytes = selectedAttachmentBytes();
+    const tooLarge = maxEmlBytes() > 0 && selectedBytes > maxEmlBytes();
     ui.replace(
       actionBox,
+      reviewSummary(),
       ui.el("p", { class: "muted", text: attachmentLabel(state.selectedAttachmentIds.size) }),
       attachmentPicker(),
       mime.currentSource() === "officejs"
@@ -875,8 +833,10 @@ export async function render(ctx) {
       ui.button({
         label: T.ticketNeu.submit,
         variant: "primary",
-        disabled: state.company === null || state.submitting,
-        title: state.company === null ? T.ticketNeu.companyUnknown : "",
+        disabled: state.company === null || state.remitter === null || tooLarge || state.submitting,
+        title: state.company === null
+          ? T.ticketNeu.companyUnknown
+          : (state.remitter === null ? T.ticketNeu.remitterUnknown : (tooLarge ? T.ticketNeu.attachmentSizeWarning : "")),
         onClick: () => void submit(),
       }),
     );
@@ -892,7 +852,7 @@ export async function render(ctx) {
       return;
     }
     if (!state.company) return;
-    if (state.options && state.options.remitterRequired === true && !state.remitter) {
+    if (!state.remitter) {
       ctx.showError({ code: "REMITTER_REQUIRED" });
       return;
     }
@@ -1128,6 +1088,8 @@ export async function render(ctx) {
   renderRemitter();
   renderActions();
 
+  if (state.company) void loadContacts();
+
   if (state.options) {
     clampSelections();
     renderOptions();
@@ -1139,6 +1101,5 @@ export async function render(ctx) {
   // Routenwechsel in eine abgeraeumte Oberflaeche schreiben.
   return () => {
     companySearch.dispose();
-    remitterSearch.dispose();
   };
 }
