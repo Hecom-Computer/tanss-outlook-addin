@@ -21,8 +21,8 @@
  */
 
 import { errorText } from "../i18n/de.js";
-import { ApiError } from "./tanss/errors.js";
-import { ready, start } from "./runtime.js";
+import { ApiError, isUnauthenticated } from "./tanss/errors.js";
+import { ready, session, start } from "./runtime.js";
 import * as appointments from "./services/appointments.js";
 import * as meta from "./services/meta.js";
 import * as search from "./services/search.js";
@@ -160,7 +160,19 @@ async function run({ handler, flags, match }, options) {
       ? options.form
       : (options.json !== undefined ? options.json : (options.query || {}));
 
-    const data = await handler(match, payload, { signal: options.signal });
+    let data;
+    try {
+      data = await handler(match, payload, { signal: options.signal });
+    } catch (error) {
+      // Das Ablaufdatum im lokalen Speicher ist nur eine Vorhersage. Verwirft TANSS
+      // den Zugriffsschluessel vorher, erneuern wir einmal und wiederholen genau
+      // diesen Vorgang. Eine abgelehnte Anmeldung wird dabei nicht wiederholt: Die
+      // Erneuerung wirft dann erneut UNAUTHENTICATED und die Oberflaeche zeigt die
+      // Anmeldung. Der zweite Fachaufruf passiert nur nach erfolgreicher Erneuerung.
+      if (!flags.auth || !isUnauthenticated(error)) throw error;
+      await session().forceRenew();
+      data = await handler(match, payload, { signal: options.signal });
+    }
     return ok(data === undefined ? null : data);
   } catch (error) {
     if (options.signal && options.signal.aborted) return fail("CLIENT_UNEXPECTED");

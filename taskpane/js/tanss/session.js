@@ -189,6 +189,16 @@ export class Session {
    */
   async ensureFresh() {
     if (this.isFresh()) return;
+    await this.forceRenew();
+  }
+
+  /**
+   * Erneuert auch dann, wenn das lokal gespeicherte Ablaufdatum noch in der Zukunft
+   * liegt. Das ist fuer den seltenen, aber wichtigen Fall gedacht, dass TANSS ein
+   * Zugriffstoken serverseitig vorzeitig verwirft. Erst ein abgewiesener Fachaufruf
+   * darf diesen Weg ausloesen; normale Aufrufe bleiben bei `ensureFresh()` billig.
+   */
+  async forceRenew() {
     if (!this._renewing) {
       this._renewing = this.renew().finally(() => {
         this._renewing = null;

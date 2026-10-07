@@ -169,6 +169,20 @@ test("ein frisches Token wird nicht ohne Not erneuert", async () => {
   assert.equal(calls.length, 1, "nur die Anmeldung");
 });
 
+test("eine serverseitige Ablehnung kann trotz lokal frischem Token erneuern", async () => {
+  const { session, calls } = sessionWith([
+    { body: loginReply() },
+    { body: loginReply({ apiKey: "Bearer frisch" }) },
+  ]);
+  await session.login({ username: "a", password: "b" });
+  assert.equal(session.isFresh(), true, "das gespeicherte Ablaufdatum ist noch gueltig");
+
+  await session.forceRenew();
+
+  assert.equal(calls.length, 2, "Anmeldung plus erzwungene Erneuerung");
+  assert.equal(session.apiToken(), "Bearer frisch");
+});
+
 test("ohne Erneuerungstoken gibt es nichts zu erneuern", async () => {
   const { session } = sessionWith([{ body: loginReply({ refresh: "" }) }]);
   await session.login({ username: "a", password: "b" });

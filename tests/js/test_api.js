@@ -133,6 +133,36 @@ test("jede fachliche Anfrage traegt den Handelnden aus der Sitzung", async () =>
   assert.equal(suche.url.searchParams.get("loggedInUserId"), "42");
 });
 
+test("ein vorzeitig abgewiesenes Token wird einmal erneuert und der Aufruf wiederholt", async () => {
+  let versuche = 0;
+  routes = {
+    "PUT /api/v1/search": () => {
+      versuche += 1;
+      if (versuche === 1) {
+        return reply({ error: { tokenExceptionType: "EXPIRED" } }, 401);
+      }
+      return reply({ content: { companies: [{ id: 3, name: "Muster GmbH" }] } });
+    },
+    "GET /api/v1/employees/ownState": {
+      content: {
+        employeeId: 42,
+        apiKey: "Bearer erneuert",
+        expire: Math.floor(Date.now() / 1000) + 4 * 3600,
+        refresh: "Bearer erneuerung-neu",
+      },
+    },
+  };
+  calls.length = 0;
+
+  const result = await api.get("api/search/companies", { query: { q: "muster" } });
+
+  assert.equal(result.ok, true);
+  assert.equal(versuche, 2, "ein abgelehnter Aufruf und genau eine Wiederholung");
+  assert.equal(calls.filter((c) => c.path === "/api/v1/employees/ownState").length, 1);
+  const zweiteSuche = calls.filter((c) => c.path === "/api/v1/search")[1];
+  assert.equal(new Headers(zweiteSuche.init.headers).get("apiToken"), "Bearer erneuert");
+});
+
 test("eine zu kurze Suche kostet keinen Aufruf", async () => {
   calls.length = 0;
   const result = await api.get("api/search/companies", { query: { q: "a" } });
