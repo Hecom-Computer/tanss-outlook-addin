@@ -3,9 +3,10 @@
 Der Quelltext dieses Repositories steht unter der MIT-Lizenz (siehe `LICENSE`). Zwei
 Dinge darin sind davon ausgenommen beziehungsweise gesondert lizenziert.
 
-## Das Zeichen von ProNet Systems
+## Das Zeichen von hecom
 
-`taskpane/assets/logo.png` ist das Unternehmenszeichen der ProNet Systems GmbH. Es ist
+`taskpane/assets/hecom-logo.png` ist das Unternehmenszeichen von hecom TK + IT-Lösungen,
+übernommen von `https://www.hecom.de/`. Es ist
 **nicht** Gegenstand der MIT-Lizenz.
 
 Die MIT-Lizenz erlaubt jedem, den lizenzierten Inhalt zu verwenden, zu verändern und
@@ -14,14 +15,14 @@ wäre es das Gegenteil: Es steht dafür, wer hinter einer Sache steht, und darf 
 nicht in fremdem Namen verwendet werden.
 
 Wer dieses Add-in einsetzt, anpasst oder weitergibt, darf das Zeichen daher **nicht** so
-verwenden, dass der Eindruck entsteht, ProNet Systems stehe hinter der eigenen Abwandlung.
+verwenden, dass der Eindruck entsteht, hecom stehe hinter der eigenen Abwandlung.
 Für eine eigene Installation ist die Datei schlicht zu ersetzen:
 
 ```
-taskpane/assets/logo.png     288 x 100 Pixel, PNG mit Transparenz
+taskpane/assets/hecom-logo.png     PNG mit Transparenz
 ```
 
-Das Bild wird 25 Pixel hoch angezeigt; die Breite ergibt sich aus dem
+Das Bild wird 30 Pixel hoch angezeigt; die Breite ergibt sich aus dem
 Seitenverhältnis. Wird es ersetzt, gehört der Alternativtext in
 `taskpane/i18n/de.js` unter `app.vendor` mit angepasst — er ist das, was ein
 Screenreader vorliest.

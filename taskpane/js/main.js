@@ -92,7 +92,7 @@ function buildShell() {
   // Bildmarke zu Sprenkeln, waehrend ein Buchstabe die FUNKTION benennt.
   const logo = ui.el("img", {
     class: "hdr-logo",
-    attrs: { src: "assets/logo.png", alt: T.app.vendor, width: 72, height: 25 },
+    attrs: { src: "assets/hecom-logo.png", alt: T.app.vendor, width: 76, height: 30 },
   });
 
   const header = ui.el("header", { class: "hdr" }, [

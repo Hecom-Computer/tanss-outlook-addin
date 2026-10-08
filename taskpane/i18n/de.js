@@ -33,7 +33,7 @@ export const T = deepFreeze({
      * einen Screenreader unsichtbar, und gerade auf der Anmeldeseite soll hoerbar sein,
      * wessen Oberflaeche nach dem Kennwort fragt.
      */
-    vendor: "ProNet Systems",
+    vendor: "hecom TK + IT-Lösungen",
     loading: "Wird geladen …",
     working: "Einen Moment …",
     retry: "Erneut versuchen",
