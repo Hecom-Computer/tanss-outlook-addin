@@ -34,6 +34,7 @@ const REQUIRED_MAILBOX_SET = "1.6";
 const ROUTES = new Map([
   ["#/ticket/neu", { module: "./pages/ticket-neu.js", title: T.nav.ticketNeu, needs: "message", guarded: true }],
   ["#/ticket/anhaengen", { module: "./pages/ticket-anhaengen.js", title: T.nav.ticketAnhaengen, needs: "message", guarded: true }],
+  ["#/vorgaenge", { module: "./pages/meine-vorgaenge.js", title: T.nav.myWork, needs: "message", guarded: true }],
   ["#/termin", { module: "./pages/termin.js", title: T.nav.termin, needs: "appointment", guarded: true }],
   ["#/anmeldung", { module: "./pages/anmeldung.js", title: T.nav.anmeldung, needs: null, guarded: false }],
   ["#/diagnose", { module: "./pages/diagnose.js", title: T.nav.diagnose, needs: null, guarded: false }],

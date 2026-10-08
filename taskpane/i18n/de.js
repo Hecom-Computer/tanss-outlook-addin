@@ -71,6 +71,7 @@ export const T = deepFreeze({
   nav: {
     ticketNeu: "Ticket erstellen",
     ticketAnhaengen: "An Ticket anhängen",
+    myWork: "Meine Vorgänge",
     termin: "TANSS-Einsatz",
     anmeldung: "Anmeldung",
     diagnose: "Diagnose",
@@ -244,6 +245,15 @@ export const T = deepFreeze({
     heading: "Vorgang abgeschlossen",
     ticket: "Ticket",
     title: "Titel",
+  },
+
+  myWork: {
+    heading: "Meine Vorgänge",
+    assigned: "Mir zugewiesen",
+    recent: "Zuletzt verwendet",
+    searchPlaceholder: "Ticketnummer oder Titel suchen …",
+    noAssigned: "Derzeit sind keine Tickets zugewiesen.",
+    noRecent: "Noch keine zuletzt verwendeten Tickets.",
   },
 
   termin: {

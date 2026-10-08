@@ -412,7 +412,7 @@ test("jedes Symbol, auf das die Manifestvorlage zeigt, liegt auch da", () => {
   }
 });
 
-test("das Menue der Mailansicht traegt zwei unterscheidbare Eintraege", () => {
+test("das Menue der Mailansicht traegt unterscheidbare Eintraege", () => {
   // Zwei Eintraege mit demselben Symbol oder derselben Adresse waeren eine Auswahl, die
   // keine ist - und das faellt erst auf, wenn jemand beide ausprobiert.
   const vorlage = lies(join(WURZEL, "tools", "ManifestGenerator", "manifest.xml.tmpl"));
@@ -421,7 +421,7 @@ test("das Menue der Mailansicht traegt zwei unterscheidbare Eintraege", () => {
   assert.equal(menues, 1, "erwartet wird genau ein Aufklappmenue");
 
   const eintraege = [...vorlage.matchAll(/<Item id="([^"]+)"/g)].map((t) => t[1]);
-  assert.equal(eintraege.length, 2, `Eintraege: ${eintraege}`);
+  assert.equal(eintraege.length, 3, `Eintraege: ${eintraege}`);
 
   const inMenu = vorlage.slice(vorlage.indexOf("<Items>"), vorlage.indexOf("</Items>"));
   const symbole = [...inMenu.matchAll(/resid="(i[A-Za-z]+\d+)"/g)].map((t) => t[1]);

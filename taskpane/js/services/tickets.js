@@ -17,6 +17,10 @@ import { priorityOrNull } from "../tanss/models.js";
 import { repository, settings, store } from "../runtime.js";
 import { titleFromSubject } from "../text.js";
 
+export async function ownTickets(_query = {}, { signal } = {}) {
+  return repository().ownTickets({ signal });
+}
+
 /** Wie viele aehnliche und wie viele offene Tickets die Vorbelegung mitbringt. */
 const SIMILAR_LIMIT = 5;
 const OPEN_TICKET_LIMIT = 10;

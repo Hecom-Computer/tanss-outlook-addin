@@ -179,12 +179,28 @@
                           <Description resid="dscAnhaengen"/>
                         </Supertip>
                         <Icon>
+                          <bt:Image size="16" resid="i16"/>
+                          <bt:Image size="32" resid="i32"/>
+                          <bt:Image size="80" resid="i80"/>
+                        </Icon>
+                        <Action xsi:type="ShowTaskpane">
+                          <SourceLocation resid="urlAnhaengen"/>
+                        </Action>
+                      </Item>
+
+                      <Item id="itmMeineVorgaenge">
+                        <Label resid="lblMeineVorgaenge"/>
+                        <Supertip>
+                          <Title resid="lblMeineVorgaenge"/>
+                          <Description resid="dscMeineVorgaenge"/>
+                        </Supertip>
+                        <Icon>
                           <bt:Image size="16" resid="iAnh16"/>
                           <bt:Image size="32" resid="iAnh32"/>
                           <bt:Image size="80" resid="iAnh80"/>
                         </Icon>
                         <Action xsi:type="ShowTaskpane">
-                          <SourceLocation resid="urlAnhaengen"/>
+                          <SourceLocation resid="urlMeineVorgaenge"/>
                         </Action>
                       </Item>
 
@@ -257,6 +273,7 @@
         <bt:Urls>
           <bt:Url id="urlNeu"       DefaultValue="${page_url}#/ticket/neu"/>
           <bt:Url id="urlAnhaengen" DefaultValue="${page_url}#/ticket/anhaengen"/>
+          <bt:Url id="urlMeineVorgaenge" DefaultValue="${page_url}#/vorgaenge"/>
           <bt:Url id="urlTermin"    DefaultValue="${page_url}#/termin"/>
         </bt:Urls>
 
@@ -264,6 +281,7 @@
           <bt:String id="grpLabel"     DefaultValue="TANSS"/>
           <bt:String id="lblNeu"       DefaultValue="Ticket erstellen"/>
           <bt:String id="lblAnhaengen" DefaultValue="An Ticket anhängen"/>
+          <bt:String id="lblMeineVorgaenge" DefaultValue="Meine Vorgänge"/>
           <bt:String id="lblTermin"    DefaultValue="TANSS-Einsatz"/>
         </bt:ShortStrings>
 
@@ -271,6 +289,7 @@
           <bt:String id="dscMenu"      DefaultValue="Diese E-Mail in TANSS verarbeiten: ein Ticket daraus anlegen oder sie einem bestehenden zuordnen."/>
           <bt:String id="dscNeu"       DefaultValue="Aus dieser E-Mail ein TANSS-Ticket anlegen und die Mail samt Anhängen dort ablegen."/>
           <bt:String id="dscAnhaengen" DefaultValue="Diese E-Mail einem bestehenden TANSS-Ticket zuordnen."/>
+          <bt:String id="dscMeineVorgaenge" DefaultValue="Eigene und zuletzt verwendete TANSS-Tickets anzeigen und direkt öffnen."/>
           <bt:String id="dscTermin"    DefaultValue="Firma, Einsatzart, Ticket und Ort für diesen Termin in TANSS pflegen."/>
         </bt:LongStrings>
       </Resources>

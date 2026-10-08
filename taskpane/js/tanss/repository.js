@@ -162,6 +162,13 @@ export class TanssRepository {
     return payload && typeof payload === "object" ? payload : {};
   }
 
+  async ownTickets({ signal } = {}) {
+    const { content, meta } = await this.client.get("/api/v1/tickets/own", {
+      retry: true, wantMeta: true, signal,
+    });
+    return this._rows(content || [], meta, new Set());
+  }
+
   /* ---------------------------------------------------------------- Suche */
 
   /** Firmensuche hinter dem Firmenwaehler. */

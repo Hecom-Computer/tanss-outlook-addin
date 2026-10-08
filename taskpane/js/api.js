@@ -89,6 +89,7 @@ const ROUTES = [
 
   ["POST", /^api\/mail\/context$/, (m, body, o) => tickets.mailContext(body, o), { auth: true }],
   ["GET", /^api\/tickets\/options$/, (m, q, o) => tickets.ticketOptions(q, o), { auth: true }],
+  ["GET", /^api\/tickets\/own$/, (m, q, o) => tickets.ownTickets(q, o), { auth: true }],
   ["POST", /^api\/tickets$/, (m, form, o) => tickets.createTicket(form, o), { auth: true }],
   ["POST", /^api\/tickets\/(\d+)\/mail$/, (m, form, o) => tickets.attachMail(Number(m[1]), form, o), { auth: true }],
 
