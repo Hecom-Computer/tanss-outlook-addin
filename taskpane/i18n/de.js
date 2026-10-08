@@ -240,6 +240,12 @@ export const T = deepFreeze({
     forceLabel: "Trotzdem anhängen",
   },
 
+  ticketDone: {
+    heading: "Vorgang abgeschlossen",
+    ticket: "Ticket",
+    title: "Titel",
+  },
+
   termin: {
     heading: "TANSS-Einsatz zu diesem Termin",
     resolving: "Zugehöriger Einsatz wird gesucht …",

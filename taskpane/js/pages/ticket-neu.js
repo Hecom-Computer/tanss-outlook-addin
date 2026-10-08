@@ -992,7 +992,15 @@ export async function render(ctx) {
     // Was mit der Mail geschah, kommt nur dann dazu, wenn es NICHT der gewoehnliche
     // Erfolg ist. Ein Satz, der immer dasselbe sagt, wird nicht mehr gelesen.
     const nummer = t("ticketNeu.successHeading", { id: created.ticketId });
-    const children = [];
+    const children = [
+      ui.section({
+        heading: T.ticketDone.heading,
+        children: [ui.kv([
+          [T.ticketDone.ticket, `#${created.ticketId}`],
+          [T.ticketDone.title, state.title || T.app.none],
+        ])],
+      }),
+    ];
 
     if (mail.status === "attached") {
       children.push(ui.banner({ tone: "ok", label: nummer }));

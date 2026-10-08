@@ -437,12 +437,16 @@ export async function render(ctx) {
 
   function renderDone(ticketId, result) {
     const url = ticketUrl(ctx.me ? ctx.me.tanssFrontendUrl : "", ticketId);
+    const ticketTitle = state.selected && state.selected.title ? state.selected.title : T.app.none;
     ui.replace(
       ctx.root,
       ui.el("div", { class: "stack" }, [
-        ui.el("h2", {
-          class: "section-heading",
-          text: t("ticketAnhaengen.successHeading", { id: ticketId }),
+        ui.section({
+          heading: T.ticketDone.heading,
+          children: [ui.kv([
+            [T.ticketDone.ticket, `#${ticketId}`],
+            [T.ticketDone.title, ticketTitle],
+          ])],
         }),
         ui.banner({
           tone: "ok",

@@ -629,6 +629,16 @@ test("die Ticketmaske sperrt ohne Ansprechpartner und bei zu grossen Anhaengen",
     "es gibt keine Zusammenfassung vor dem Anlegen");
 });
 
+test("beide Ticketwege zeigen eine kompakte Abschlusszusammenfassung", () => {
+  for (const datei of ["ticket-neu.js", "ticket-anhaengen.js"]) {
+    const quelle = lies(join(TASKPANE, "js", "pages", datei));
+    assert.ok(quelle.includes("T.ticketDone.heading"), `${datei} zeigt keine Abschlussseite`);
+    assert.ok(quelle.includes("T.ticketDone.ticket"), `${datei} nennt die Ticketnummer nicht`);
+    assert.ok(quelle.includes("T.ticketDone.title"), `${datei} nennt den Tickettitel nicht`);
+    assert.ok(quelle.includes("T.app.openInTanss"), `${datei} bietet keinen TANSS-Link`);
+  }
+});
+
 test("die Pruefzusammenfassung wird nach dem Wechsel der Abteilung aktualisiert", () => {
   const quelle = lies(join(TASKPANE, "js", "pages", "ticket-neu.js"));
   assert.match(quelle, /state\.departmentId = numberOrNull\(departmentSelect\.value\);\s*markDirty\(\);\s*renderActions\(\);/,
