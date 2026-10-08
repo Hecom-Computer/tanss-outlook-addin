@@ -715,6 +715,7 @@ export async function render(ctx) {
       onChange: () => {
         state.departmentId = numberOrNull(departmentSelect.value);
         markDirty();
+        renderActions();
       },
     });
     const separateBilling = ui.checkbox({

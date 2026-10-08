@@ -629,6 +629,12 @@ test("die Ticketmaske sperrt ohne Ansprechpartner und bei zu grossen Anhaengen",
     "es gibt keine Zusammenfassung vor dem Anlegen");
 });
 
+test("die Pruefzusammenfassung wird nach dem Wechsel der Abteilung aktualisiert", () => {
+  const quelle = lies(join(TASKPANE, "js", "pages", "ticket-neu.js"));
+  assert.match(quelle, /state\.departmentId = numberOrNull\(departmentSelect\.value\);\s*markDirty\(\);\s*renderActions\(\);/,
+    "die gewaehlte Abteilung erscheint nicht sofort in der Pruefzusammenfassung");
+});
+
 test("das Pane ruft nur Flaechen auf, die seine Tokenart erreicht", () => {
   // TANSS bindet jede Schnittstellenflaeche an eine Rolle, und ein Anmeldetoken traegt
   // genau eine. Eine gewoehnliche Anmeldung ergibt die Rolle des Fachzugriffs - damit
