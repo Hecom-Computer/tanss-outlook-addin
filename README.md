@@ -14,7 +14,7 @@ direkt mit Ihrer TANSS-Instanz, aus dem Browser des Technikers heraus.
 **Sie müssen nichts ablegen.** Die Dateien werden unter
 
 ```
-https://pronet-systems.github.io/tanss-outlook-addin
+https://hecom-computer.github.io/tanss-outlook-addin
 ```
 
 gepflegt und laufend aktualisiert. Ihre Installation besteht aus einer erzeugten
@@ -193,7 +193,7 @@ Webserver legen. Er entfällt.
 ### Die Ablage: bitte die gepflegte nutzen
 
 ```
-https://pronet-systems.github.io/tanss-outlook-addin
+https://hecom-computer.github.io/tanss-outlook-addin
 ```
 
 Diese Adresse ist im Generator bereits vorbelegt, und Sie sollten sie stehen lassen. Der
@@ -260,7 +260,7 @@ was ablaufen könnte.
    (SPA)**. Als Umleitungs-URI eintragen:
 
    ```
-   brk-multihub://pronet-systems.github.io
+   brk-multihub://hecom-computer.github.io
    ```
 
    > **Nur die Herkunft, ohne Pfad.** Nicht die volle Adresse des Panes. Bei einer eigenen
@@ -307,7 +307,7 @@ Auszufüllen ist im Grunde **ein** Feld:
 
 | Feld | Was hinein gehört |
 |---|---|
-| **Ablage-Adresse** | Bereits vorbelegt mit `https://pronet-systems.github.io/tanss-outlook-addin`. Stehen lassen. |
+| **Ablage-Adresse** | Bereits vorbelegt mit `https://hecom-computer.github.io/tanss-outlook-addin`. Stehen lassen. |
 | **TANSS-API** | Die API-Adresse Ihrer Instanz, meist auf `/backend` endend — zum Beispiel `https://tanss.ihre-firma.de/backend`. |
 | **Add-in-Kennung** | Wird berechnet, nicht eingegeben. |
 | *Weitere Angaben* → **Entra-Anwendungs-Id** | Die GUID aus Schritt 1. Leer lassen, wenn Sie Schritt 1 übersprungen haben. |
@@ -738,30 +738,12 @@ Lauf.
 
 ---
 
-## Weitere TANSS-Werkzeuge
-
-Aus demselben Haus, mit demselben Zuschnitt: quelloffen, und jedes spricht unmittelbar mit der
-eigenen TANSS-Instanz — ohne fremden Zwischendienst.
-
-- **[TANSS Log-Watcher](https://github.com/pronet-systems/tanss-log-watcher)** —
-  erkennt Fernwartungssitzungen (AnyDesk, TeamViewer, Remotedesktop, ScreenConnect und weitere)
-  am Windows-Arbeitsplatz und bucht sie als Fernwartung.
-- **[TANSS Git-Connector](https://github.com/pronet-systems/tanss-git-connector)** —
-  bucht Git-Commits per `post-commit`-Hook als Fernwartung. Linux, Windows, macOS.
-- **[TANSS Calendar Sync](https://github.com/pronet-systems/tanss-calendar-sync)** —
-  gleicht Termine zwischen TANSS und Microsoft 365 in beide Richtungen ab.
-
-Dahinter steht die [ProNet Systems GmbH](https://www.pronet-systems.de), ein IT-Systemhaus aus
-Arnsberg.
-
----
-
 ## Lizenz
 
 MIT. Siehe [LICENSE](LICENSE).
 
 Zwei Dinge sind davon ausgenommen beziehungsweise gesondert lizenziert: das
-Unternehmenszeichen in `taskpane/assets/logo.png` und die mitgelieferte Fremdbibliothek.
+Unternehmenszeichen in `taskpane/assets/hecom-logo.png` und die mitgelieferte Fremdbibliothek.
 Beides steht in [NOTICE.md](NOTICE.md) — dort steht auch, wie das Zeichen für eine eigene
 Installation ersetzt oder entfernt wird.
 

@@ -77,7 +77,7 @@ public sealed record Options
     public bool EmbedTanssInUrl { get; init; } = true;
 
     public const string DefaultDisplayName = "TANSS";
-    public const string DefaultProviderName = "ProNet Systems GmbH";
+    public const string DefaultProviderName = "hecom TK + IT-Lösungen";
     public const string DefaultVersion = "1.0.0.0";
 
     /// <summary>Die Adresse der Seite, wie sie ins Manifest kommt.</summary>

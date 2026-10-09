@@ -92,10 +92,9 @@ const DEFAULTS = {
     /** Die Terminseite anbieten. */
     appointments: true,
     /**
-     * Selbst Einsaetze anlegen. Nur in einer Installation OHNE
-     * Kalendersynchronisation einschalten - sonst entstehen zwei Eintraege je Termin.
+     * Selbst Einsaetze anlegen. Fuer die HECOM-Installation ist dies aktiviert.
      */
-    createSupport: false,
+    createSupport: true,
     /** Die Nachricht ueber Graph holen. Braucht `entra.clientId`. */
     graphMail: true,
     /** Den Termin ueber Graph lesen. Braucht `entra.clientId`. */

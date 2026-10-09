@@ -11,7 +11,7 @@
   },
   "features": {
     "appointments": true,
-    "createSupport": false,
+    "createSupport": true,
     "graphMail": true,
     "graphCalendar": false
   },

@@ -128,8 +128,8 @@ Nichts davon ist Annahme.
 
 ### Die Erneuerung braucht eine Zeile auf dem TANSS-Server
 
-Gemessen an `tanss.pronet-systems.de` (16.09.2026), Vorabfrage aus dem Ursprung
-`https://pronet-systems.github.io`:
+Für eine TANSS-Installation muss die Vorabfrage aus der Add-in-Ablage mindestens
+folgenden Header zulassen:
 
 ```
 Access-Control-Allow-Headers: content-type,cache-control,x-requested-with,

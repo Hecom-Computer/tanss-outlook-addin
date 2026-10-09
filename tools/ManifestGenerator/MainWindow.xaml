@@ -38,9 +38,9 @@
       <StackPanel>
 
         <TextBlock Style="{StaticResource Beschriftung}" Text="Ablage-Adresse des Add-ins"/>
-        <TextBox x:Name="AblageFeld" Text="https://pronet-systems.github.io/tanss-outlook-addin"/>
+        <TextBox x:Name="AblageFeld" Text="https://hecom-computer.github.io/tanss-outlook-addin"/>
         <TextBlock Style="{StaticResource Hinweis}"
-                   Text="Vorbelegt mit der gepflegten Ablage von ProNet Systems. Dort liegt immer die aktuelle Version — Verbesserungen und Fehlerbehebungen erreichen Ihre Techniker ohne Ihr Zutun. Nur ändern, wenn Sie die Dateien bewusst selbst hosten; dann aktualisieren Sie sie auch selbst."/>
+                   Text="Vorbelegt mit der von hecom betriebenen Ablage. Dort liegt immer die aktuelle Version — Verbesserungen und Fehlerbehebungen erreichen Ihre Techniker ohne Ihr Zutun. Nur ändern, wenn Sie die Dateien bewusst selbst hosten; dann aktualisieren Sie sie auch selbst."/>
         <TextBlock Style="{StaticResource Hinweis}"
                    Text="Diese Adresse muss vom Arbeitsplatz des Technikers erreichbar sein — nicht von Microsoft. Ohne Schrägstrich am Ende. Es liegt dort nichts Kundenspezifisches: Welche TANSS-Instanz gilt, steht in Ihrem Manifest."/>
 
@@ -67,7 +67,7 @@
             <TextBox x:Name="NameFeld" Text="TANSS"/>
 
             <TextBlock Style="{StaticResource Beschriftung}" Text="Herausgeber"/>
-            <TextBox x:Name="HerausgeberFeld" Text="ProNet Systems GmbH"/>
+            <TextBox x:Name="HerausgeberFeld" Text="hecom TK + IT-Lösungen"/>
 
             <TextBlock Style="{StaticResource Beschriftung}" Text="TANSS-Oberfläche"/>
             <TextBox x:Name="OberflaecheFeld"/>
