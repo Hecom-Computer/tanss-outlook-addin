@@ -11,7 +11,10 @@ function open(ctx, ticket) {
   } catch { ctx.showError({ code: "CLIENT_OFFICE_FAILED" }); }
 }
 
-export async function mount(ctx) {
+// Der Router ruft bei jeder Seite einheitlich `render(ctx)` auf. Diese Ansicht war
+// versehentlich noch mit dem alten Namen `mount` exportiert und brach deshalb bereits
+// vor dem ersten TANSS-Abruf ab.
+export async function render(ctx) {
   const assigned = ui.el("div", { class: "stack" });
   const recent = ui.el("div", { class: "stack" });
   const results = ui.el("div", { class: "stack" });
