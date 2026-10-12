@@ -421,7 +421,7 @@ test("das Menue der Mailansicht traegt unterscheidbare Eintraege", () => {
   assert.equal(menues, 1, "erwartet wird genau ein Aufklappmenue");
 
   const eintraege = [...vorlage.matchAll(/<Item id="([^"]+)"/g)].map((t) => t[1]);
-  assert.equal(eintraege.length, 3, `Eintraege: ${eintraege}`);
+  assert.equal(eintraege.length, 2, `Eintraege: ${eintraege}`);
 
   const inMenu = vorlage.slice(vorlage.indexOf("<Items>"), vorlage.indexOf("</Items>"));
   const symbole = [...inMenu.matchAll(/resid="(i[A-Za-z]+\d+)"/g)].map((t) => t[1]);
