@@ -265,6 +265,9 @@ export async function render(ctx) {
     statusId: numberOrNull(prefs[PREF_STATUS]),
     assigneeId: numberOrNull(prefs[PREF_ASSIGNEE]),
     departmentId: null,
+    contractId: null,
+    contracts: [],
+    contractsLoading: false,
     separateBilling: false,
     /** Leer heisst: der naechste Absendeversuch ist ein NEUER Vorgang. */
     idempotencyKey: "",
@@ -272,6 +275,12 @@ export async function render(ctx) {
   };
   state.attachments = realAttachments();
   state.selectedAttachmentIds = new Set(state.attachments.map((attachment) => attachment.id));
+
+  /** Oeffnet die Anhaengemaske mit dem bewusst gewaehlt(en) bestehenden Ticket. */
+  function openExistingTicket(ticketId) {
+    const id = Number(ticketId);
+    if (Number.isInteger(id) && id > 0) ctx.navigate(`#/ticket/anhaengen?ticketId=${id}`);
+  }
 
   /* ---------------------------------------------------------------- Bausteine */
 
@@ -339,7 +348,7 @@ export async function render(ctx) {
           tone: "warn",
           label: T.ticketAnhaengen.alreadyAttached,
           actionLabel: T.ticketNeu.similarSwitch,
-          onAction: () => ctx.navigate("#/ticket/anhaengen"),
+          onAction: () => openExistingTicket(state.attachedTo[0] && state.attachedTo[0].ticketId),
         }),
       );
     }
@@ -362,7 +371,7 @@ export async function render(ctx) {
           tone: "info",
           label: T.ticketNeu.similarHint,
           actionLabel: T.ticketNeu.similarSwitch,
-          onAction: () => ctx.navigate("#/ticket/anhaengen"),
+          onAction: () => openExistingTicket(state.similar[0] && state.similar[0].id),
         }),
         ui.section({
           heading: T.ticketNeu.similarHeading,
@@ -374,7 +383,7 @@ export async function render(ctx) {
                   title: `${ticket.id}${SEPARATOR}${ticket.title || ""}`,
                   subtitle: ticket.companyName || "",
                   badgeLabel: ticket.statusName || "",
-                  onClick: () => ctx.navigate("#/ticket/anhaengen"),
+                  onClick: () => openExistingTicket(ticket.id),
                 }),
             }),
           ],
@@ -391,7 +400,7 @@ export async function render(ctx) {
               renderItem: (ticket) => ui.listRow({
                 title: `${ticket.id}${SEPARATOR}${ticket.title || ""}`,
                 subtitle: ticket.statusName || "",
-                onClick: () => ctx.navigate("#/ticket/anhaengen"),
+                onClick: () => openExistingTicket(ticket.id),
               }),
             }),
           ],
@@ -521,6 +530,8 @@ export async function render(ctx) {
     state.contacts = [];
     state.similar = [];
     state.openTickets = [];
+    state.contractId = null;
+    state.contracts = [];
     state.remitterUnverified = false;
     companySearchBox.hidden = true;
     companySearch.input.value = "";
@@ -533,6 +544,29 @@ export async function render(ctx) {
     void loadOptions();
     void loadOpenTickets();
     void loadContacts();
+    void loadContracts();
+  }
+
+  async function loadContracts() {
+    if (!state.company) return;
+    const companyId = state.company.id;
+    state.contractsLoading = true;
+    renderOptions();
+    const result = await api.get(`api/companies/${companyId}/contracts`, {
+      query: {}, signal: ctx.signal,
+    });
+    if (ctx.signal.aborted || !state.company || state.company.id !== companyId) return;
+    state.contractsLoading = false;
+    if (!result.ok) {
+      ctx.showError(result.error);
+      state.contracts = [];
+    } else {
+      state.contracts = Array.isArray(result.data) ? result.data : [];
+      if (!state.contracts.some((contract) => contract.id === state.contractId)) {
+        state.contractId = null;
+      }
+    }
+    renderOptions();
   }
 
   async function loadOpenTickets() {
@@ -718,6 +752,15 @@ export async function render(ctx) {
         renderActions();
       },
     });
+    const contractSelect = ui.select({
+      options: toSelectOptions(state.contracts),
+      value: state.contractId,
+      placeholder: T.ticketNeu.contractNone,
+      onChange: () => {
+        state.contractId = numberOrNull(contractSelect.value);
+        markDirty();
+      },
+    });
     const separateBilling = ui.checkbox({
       label: T.ticketNeu.separateBilling,
       checked: state.separateBilling,
@@ -738,6 +781,13 @@ export async function render(ctx) {
         required: options.forceAssignment === true,
       }),
       ui.field({ label: T.ticketNeu.department, control: departmentSelect }),
+      state.company
+        ? ui.field({
+            label: T.ticketNeu.contract,
+            control: contractSelect,
+            hint: state.contractsLoading ? T.ticketNeu.contractLoading : T.ticketNeu.contractHint,
+          })
+        : null,
       separateBilling.root,
     );
   }
@@ -890,6 +940,7 @@ export async function render(ctx) {
         statusId: state.statusId,
         assignedToEmployeeId: state.assigneeId,
         assignedToDepartmentId: state.departmentId,
+        contractId: state.contractId,
         separateBilling: state.separateBilling,
       }),
     );
@@ -1097,7 +1148,10 @@ export async function render(ctx) {
   renderRemitter();
   renderActions();
 
-  if (state.company) void loadContacts();
+  if (state.company) {
+    void loadContacts();
+    void loadContracts();
+  }
 
   if (state.options) {
     clampSelections();

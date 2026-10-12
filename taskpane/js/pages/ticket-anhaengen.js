@@ -37,6 +37,13 @@ const SCOPE_ALL = "all";
 /** Trennzeichen zwischen zwei Angaben einer Zeile. Satzzeichen, kein uebersetzbarer Text. */
 const SEPARATOR = " · ";
 
+/** Liest eine von der Ticketmaske bewusst uebergebene Ticketnummer aus der Route. */
+function requestedTicketId() {
+  const query = String(window.location.hash || "").split("?", 2)[1] || "";
+  const id = Number(new URLSearchParams(query).get("ticketId"));
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
+
 /**
  * Adresse des Tickets in der TANSS-Weboberflaeche.
  *
@@ -99,6 +106,7 @@ export async function render(ctx) {
 
   const prefs = ctx.me && ctx.me.prefs ? ctx.me.prefs : {};
   const company = data.company && data.company.id ? data.company : null;
+  const suggestedTicketId = requestedTicketId();
 
   const state = {
     company,
@@ -119,6 +127,7 @@ export async function render(ctx) {
     tooMany: false,
     attachments: realAttachments(),
     selectedAttachmentIds: new Set(),
+    internalNote: "",
   };
   state.selectedAttachmentIds = new Set(state.attachments.map((attachment) => attachment.id));
 
@@ -205,6 +214,35 @@ export async function render(ctx) {
     renderResults();
   }
 
+  /** Waehlt das aus der Ticketmaske uebergebene Ticket nur nach einer exakten Suche aus. */
+  async function selectSuggestedTicket() {
+    if (!suggestedTicketId) return;
+    const result = await api.get("api/search/tickets", {
+      query: {
+        q: String(suggestedTicketId),
+        scope: SCOPE_ALL,
+        includeDone: true,
+        limit: 25,
+        internetMessageId: message.internetMessageId,
+      },
+      signal: ctx.signal,
+    });
+    if (ctx.signal.aborted) return;
+    if (!result.ok) {
+      ctx.showError(result.error);
+      return;
+    }
+    const ticket = (Array.isArray(result.data.items) ? result.data.items : [])
+      .find((item) => Number(item.id) === suggestedTicketId);
+    if (!ticket) {
+      ctx.showError({ code: "NOT_FOUND", message: T.ticketAnhaengen.suggestedTicketUnavailable });
+      return;
+    }
+    state.selected = ticket;
+    renderSelected();
+    renderResults();
+  }
+
   /** Zeichnet die Liste aus dem letzten Ergebnis - ohne den Dienst noch einmal zu fragen. */
   function renderResults() {
     ui.replace(
@@ -274,6 +312,15 @@ export async function render(ctx) {
             : null,
           ui.el("p", { class: "muted", text: attachmentLabel(state.selectedAttachmentIds.size) }),
           attachmentPicker(),
+          ui.field({
+            label: T.ticketAnhaengen.internalNote,
+            control: ui.textarea({
+              value: state.internalNote,
+              rows: 3,
+              onInput: (event) => { state.internalNote = event.target.value; },
+            }),
+            hint: T.ticketAnhaengen.internalNoteHint,
+          }),
           mime.currentSource() === "officejs"
             ? ui.el("p", { class: "muted", text: T.mail.reconstructed })
             : null,
@@ -365,6 +412,7 @@ export async function render(ctx) {
     form.set("eml", mail.data.blob, mail.data.filename);
     form.set("internetMessageId", mail.data.internetMessageId || "");
     form.set("subject", mail.data.subject || "");
+    if (state.internalNote.trim()) form.set("internalNote", state.internalNote.trim());
     if (force) form.set("force", "true");
 
     statusLine.textContent = T.ticketAnhaengen.attaching;
@@ -460,6 +508,17 @@ export async function render(ctx) {
               text: t("mail.sizeInfo", { size: formatBytes(result.bytes) }),
             })
           : null,
+        result.note && result.note.status === "saved"
+          ? ui.banner({ tone: "ok", label: T.ticketAnhaengen.noteSaved })
+          : null,
+        result.note && result.note.status === "failed"
+          ? ui.banner({
+              tone: "warn",
+              label: result.note.message
+                ? `${T.ticketAnhaengen.noteFailed} ${result.note.message}`
+                : T.ticketAnhaengen.noteFailed,
+            })
+          : null,
         url
           ? ui.button({
               label: T.app.openInTanss,
@@ -492,6 +551,7 @@ export async function render(ctx) {
   );
 
   await loadTickets();
+  await selectSuggestedTicket();
 
   // Aufraeumen: der entprellte Zeitgeber des Suchfeldes darf nach dem Routenwechsel nicht
   // mehr feuern - er schriebe sonst in Knoten, die es nicht mehr gibt.

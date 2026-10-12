@@ -231,6 +231,7 @@ export async function createTicket(form, { signal } = {}) {
       typeId: ticket.typeId,
       assignedToEmployeeId: ticket.assignedToEmployeeId,
       assignedToDepartmentId: ticket.assignedToDepartmentId,
+      contractId: ticket.contractId,
       extTicketId: ticket.extTicketId,
     },
     mail,
@@ -241,7 +242,22 @@ export async function createTicket(form, { signal } = {}) {
 export async function attachMail(ticketId, form, { signal } = {}) {
   const result = await attach(ticketId, form, signal);
   store().touchTicket(ticketId);
-  return { status: "attached", ...result };
+  const internalNote = String(form.get("internalNote") || "").trim();
+  if (!internalNote) return { status: "attached", ...result, note: { status: "none" } };
+  try {
+    const comment = await repository().addInternalComment(ticketId, internalNote, { signal });
+    return { status: "attached", ...result, note: { status: "saved", id: comment.id } };
+  } catch (error) {
+    return {
+      status: "attached",
+      ...result,
+      note: {
+        status: "failed",
+        code: error instanceof ApiError ? error.code : "INTERNAL",
+        message: error && error.message ? error.message : "",
+      },
+    };
+  }
 }
 
 /**
@@ -357,6 +373,7 @@ function readTicket(form) {
     statusId: Number(body.statusId) || 0,
     assignedToEmployeeId: Number(body.assignedToEmployeeId) || 0,
     assignedToDepartmentId: Number(body.assignedToDepartmentId) || 0,
+    contractId: Number(body.contractId) || 0,
     separateBilling: body.separateBilling === true,
     // `null` heisst: nicht mitsenden. Dann setzt TANSS seine eigene Vorgabe - die ist je
     // Instanz eingestellt und gehoert nicht hierher.

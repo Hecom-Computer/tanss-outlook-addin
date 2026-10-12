@@ -191,6 +191,30 @@ export async function create(body, { signal } = {}) {
     title: body.title || "",
   };
 
+  // Zwischen dem Laden der Terminseite und dem Klick auf „Einsatz anlegen“ kann ein
+  // anderer Weg bereits einen passenden Einsatz erzeugt haben. Direkt vor dem Schreiben
+  // wird deshalb erneut auf genau dieses Zeitfenster geprüft; ohne diese Gegenprobe
+  // entstünde aus einem langsamen Pane eine Doppelplanung.
+  const existing = await repository().resolveSupport({
+    employeeId: session().employeeId(),
+    supportId: null,
+    uid: fields.uid,
+    start: fields.start,
+    durationMinutes: fields.durationMinutes,
+  }, { signal });
+  if (existing.supportId) {
+    throw new ApiError(
+      "CONFLICT",
+      `Zu diesem Termin existiert bereits der TANSS-Einsatz ${existing.supportId}.`,
+    );
+  }
+  if (existing.candidates.length > 0) {
+    throw new ApiError(
+      "SUPPORT_AMBIGUOUS",
+      "Zu diesem Termin passen bereits mehrere TANSS-Einsätze. Bitte zuerst den richtigen auswählen.",
+    );
+  }
+
   const result = await repository().createSupport(fields, {
     employeeId: session().employeeId(),
     signal,

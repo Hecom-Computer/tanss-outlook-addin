@@ -74,6 +74,31 @@ test("Firmennamen kommen aus dem meta-Block, ohne Zusatzaufruf", async () => {
   assert.equal(client.calls.length, 1, "kein Zusatzaufruf je Treffer");
 });
 
+test("sichtbare Verträge kommen aus den Metadaten der Kundentickets", async () => {
+  const contracts = await repo({
+    "GET /api/v1/tickets/company/3": {
+      content: [{ id: 7, contractId: 42 }, { id: 8, contractId: 42 }, { id: 9, contractId: 0 }],
+      meta: { linkedEntities: { contracts: { 42: { name: "Wartungsvertrag" } } } },
+    },
+  }).companyContracts(3);
+  assert.deepEqual(contracts, [{ id: 42, name: "Wartungsvertrag" }]);
+});
+
+test("eine Outlook-Notiz wird als interne Ticketnotiz geschrieben", async () => {
+  const client = fakeClient({
+    "POST /api/v1/tickets/7/comments": { content: { id: 99 } },
+  });
+  const result = await new TanssRepository({ client, config: {} })
+    .addInternalComment(7, "Kunde telefonisch informiert.");
+  assert.equal(result.id, 99);
+  assert.deepEqual(client.calls[0].body, {
+    title: "Interne Notiz aus Outlook",
+    content: "Kunde telefonisch informiert.",
+    internal: true,
+    commentOfId: 7,
+  });
+});
+
 test("leer plus Hinweis heisst 'Suche verfeinern', nicht 'nichts gefunden'", async () => {
   const gekappt = await repo({
     "PUT /api/v1/search": {
@@ -695,6 +720,11 @@ test("Abteilung und getrennte Abrechnung werden mit ihren TANSS-Feldnamen geschr
   });
   assert.equal(body.assignedToDepartmentId, 8);
   assert.equal(body.separateBilling, true);
+});
+
+test("ein manuell gewählter Vertrag wird geschrieben, ohne Auswahl bleibt Vertrag null", () => {
+  assert.equal(ticketWrite({ companyId: 3, title: "x", contractId: 42 }).contractId, 42);
+  assert.equal(ticketWrite({ companyId: 3, title: "x", contractId: null }).contractId, undefined);
 });
 
 test("nur 1 bis 9 gelten als Stufe", () => {

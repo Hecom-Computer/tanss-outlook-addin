@@ -119,6 +119,7 @@ export function ticketWrite(draft) {
     statusId: draft.statusId,
     assignedToEmployeeId: draft.assignedToEmployeeId,
     assignedToDepartmentId: draft.assignedToDepartmentId,
+    contractId: draft.contractId,
     separateBilling: draft.separateBilling === true,
     // Der Draht-Name ist `priority`. Ohne Auswahl geht das Feld GAR NICHT mit: Der Server
     // setzt dann seine eigene, je Instanz eingestellte Vorgabe. Eine 0 zu senden waere
@@ -330,6 +331,7 @@ export function ticketRow(item, { companies = new Map(), states = new Map(),
     companyName: companies.get(companyId) || "",
     assignedToEmployeeId: num(item.assignedToEmployeeId),
     assignedToDepartmentId: num(item.assignedToDepartmentId),
+    contractId: num(item.contractId) || null,
     extTicketId: str(item.extTicketId),
     alreadyHasThisMail: attachedTicketIds.has(id),
   };

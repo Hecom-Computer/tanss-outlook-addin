@@ -249,6 +249,28 @@ export class TanssRepository {
   }
 
   /**
+   * Verträge, die TANSS für die Firma an den sichtbaren Tickets mitliefert.
+   *
+   * Das ist bewusst eine Auswahlhilfe und keine Aussage über die vertragliche
+   * Zulässigkeit des nächsten Tickets. Deshalb gibt es keine Vorbelegung und die
+   * leere Auswahl bleibt immer möglich.
+   */
+  async companyContracts(companyId, { signal } = {}) {
+    const { content, meta } = await this.client.get(
+      `/api/v1/tickets/company/${num(companyId)}`, { wantMeta: true, signal });
+    const names = linkedNames(meta, "contracts");
+    const ids = new Set(
+      (Array.isArray(content) ? content : [])
+        .map((ticket) => num(ticket && ticket.contractId))
+        .filter((id) => id > 0),
+    );
+    return [...ids]
+      .sort((left, right) => String(names.get(left) || left).localeCompare(
+        String(names.get(right) || right), "de"))
+      .map((id) => ({ id, name: names.get(id) || `Vertrag ${id}` }));
+  }
+
+  /**
    * Ticketsuche.
    *
    * Drei Eingaben, drei Wege:
@@ -528,6 +550,24 @@ export class TanssRepository {
       );
     }
     return { ...row, name: row.name || name, email: row.email || email };
+  }
+
+  /** Interne Notiz zu einem bereits bestehenden Ticket. */
+  async addInternalComment(ticketId, text, { signal } = {}) {
+    const content = await this.client.post(`/api/v1/tickets/${num(ticketId)}/comments`, {
+      title: "Interne Notiz aus Outlook",
+      content: String(text || "").trim(),
+      internal: true,
+      commentOfId: num(ticketId),
+    }, { signal });
+    if (!content || !num(content.id)) {
+      throw new ApiError(
+        "INTERNAL",
+        "TANSS hat die interne Notiz ohne Kennung bestätigt. Bitte im Ticket prüfen, "
+        + "bevor die Notiz erneut angelegt wird.",
+      );
+    }
+    return { id: num(content.id) };
   }
 
   /* ---------------------------------------------------------------- Mailablage */

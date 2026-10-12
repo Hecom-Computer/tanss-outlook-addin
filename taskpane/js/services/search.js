@@ -49,6 +49,12 @@ export async function companyContacts(companyId, { signal } = {}) {
   return repository().companyEmployees(companyId, { signal });
 }
 
+/** Sichtbare Verträge einer Firma für die optionale manuelle Auswahl. */
+export async function companyContracts(companyId, { signal } = {}) {
+  if (!Number(companyId)) return [];
+  return repository().companyContracts(companyId, { signal });
+}
+
 /**
  * Ticketsuche fuer "An Ticket anhaengen" und die Ticketzuordnung im Termin.
  *
