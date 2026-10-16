@@ -73,6 +73,23 @@ const RENEW_PATH = "/api/v1/employees/ownState";
  */
 let memory = null;
 
+/**
+ * Kanonische Bindung einer Sitzung an genau die TANSS-Instanz samt API-Pfad.
+ *
+ * Ursprung allein reicht nicht: Eine Instanz kann mehrere voneinander getrennte
+ * API-Pfade bereitstellen. Abfrage und Fragment sind keine Teile des API-Ziels.
+ */
+function targetKey(baseUrl) {
+  const documentBase = globalThis.document ? globalThis.document.baseURI : undefined;
+  try {
+    const url = new URL(String(baseUrl || ""), documentBase);
+    const path = url.pathname.replace(/\/+$/, "") || "/";
+    return `${url.origin}${path}`;
+  } catch {
+    return "";
+  }
+}
+
 function read() {
   if (memory) return memory;
   try {
@@ -105,6 +122,7 @@ export class Session {
    */
   constructor({ baseUrl, fetchImpl = null }) {
     this.baseUrl = String(baseUrl || "").replace(/\/+$/, "");
+    this.target = targetKey(this.baseUrl);
     this.fetchImpl = fetchImpl || ((...args) => globalThis.fetch(...args));
     /** @type {Promise<void>|null} Laufende Erneuerung - die Einfachfuehrung. */
     this._renewing = null;
@@ -114,32 +132,32 @@ export class Session {
 
   /** Die Mitarbeiternummer des Angemeldeten, oder 0. Quelle des `loggedInUserId`. */
   employeeId() {
-    const record = read();
+    const record = this._record();
     return record && Number(record.employeeId) > 0 ? Number(record.employeeId) : 0;
   }
 
   /** Der Anzeigename, den die Anmeldung hergab. */
   username() {
-    const record = read();
+    const record = this._record();
     return record ? String(record.username || "") : "";
   }
 
   /** Das Zugriffstoken samt `Bearer `-Praefix, oder eine leere Zeichenkette. */
   apiToken() {
-    const record = read();
+    const record = this._record();
     return record ? String(record.apiToken || "") : "";
   }
 
   /** Liegt ein Zugriffstoken vor, das noch lange genug gilt? */
   isFresh() {
-    const record = read();
+    const record = this._record();
     if (!record || !record.apiToken) return false;
     return Number(record.expiresAt || 0) - EXPIRY_SKEW_MS > Date.now();
   }
 
   /** Gibt es ueberhaupt eine Sitzung - notfalls eine, die erst erneuert werden muss? */
   exists() {
-    const record = read();
+    const record = this._record();
     return Boolean(record && (record.apiToken || record.refreshToken));
   }
 
@@ -215,7 +233,7 @@ export class Session {
    * dann still ab, obwohl bei jedem Aufruf eine Erneuerung versucht wurde.
    */
   async renew() {
-    const record = read();
+    const record = this._record();
     const refresh = record ? String(record.refreshToken || "") : "";
     if (!refresh) {
       throw new ApiError("UNAUTHENTICATED", "Es liegt keine Anmeldung vor.");
@@ -268,7 +286,7 @@ export class Session {
    * Reparaturen. `hasRefresh` und `expiresAt` trennen sie.
    */
   describe() {
-    const record = read();
+    const record = this._record();
     if (!record) return { stored: false, hasToken: false, hasRefresh: false, expiresAt: 0 };
     return {
       stored: true,
@@ -305,6 +323,7 @@ export class Session {
     }
     const expireSeconds = Number(content.expire) || 0;
     write({
+      target: this.target,
       employeeId,
       username: String(username || ""),
       apiToken: String(content.apiKey || ""),
@@ -313,6 +332,19 @@ export class Session {
       // Stunden sind die zugesagte Laufzeit.
       expiresAt: expireSeconds > 0 ? expireSeconds * 1000 : Date.now() + 4 * 3_600_000,
     });
+  }
+
+  /** Liest nur eine Sitzung, die fuer dieses exakte API-Ziel erzeugt wurde. */
+  _record() {
+    const record = read();
+    if (!record) return null;
+    // Alte Speicherstaende ohne Bindung sind absichtlich nicht kompatibel: Ihre Tokens
+    // duerfen nie an ein Ziel gehen, das erst nach ihrer Anmeldung eingestellt wurde.
+    if (!this.target || String(record.target || "") !== this.target) {
+      write(null);
+      return null;
+    }
+    return record;
   }
 
   async _send(method, path, { headers = {}, body, query } = {}) {

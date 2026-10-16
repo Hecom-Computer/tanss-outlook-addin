@@ -161,6 +161,27 @@ test("eine gefuellte Liste weist fremde Adressen ab", async () => {
   delete globalThis.location;
 });
 
+test("eine netzwerkrelative Adresse umgeht die Serverliste nicht", async () => {
+  globalThis.location = { href: "https://addon.example/?tanss=//boese.example/backend" };
+  serve({
+    body: JSON.stringify({
+      apiBase: "https://tanss.example/backend",
+      allowedApiOrigins: ["https://tanss.example"],
+    }),
+  });
+  const loaded = await load();
+  assert.equal(loaded.apiBase, "https://tanss.example/backend");
+  assert.equal(apiHost(), "tanss.example");
+  delete globalThis.location;
+});
+
+test("ein echter gleicher-Ursprung-Pfad bleibt zulaessig", async () => {
+  globalThis.location = { href: "https://addon.example/?tanss=/backend" };
+  serve({ body: JSON.stringify({ apiBase: "https://tanss.example/backend" }) });
+  assert.equal((await load()).apiBase, "/backend");
+  delete globalThis.location;
+});
+
 test("eine selbst eingetragene Adresse wird gemerkt und geprueft", async () => {
   globalThis.localStorage = {
     store: new Map(),

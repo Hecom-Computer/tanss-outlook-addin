@@ -97,6 +97,39 @@ test("expire ist in Sekunden und macht das Token nicht sofort ungueltig", async 
   assert.equal(session.apiToken(), "Bearer neu");
 });
 
+test("eine Sitzung gilt nur fuer genau dieselbe TANSS-API", async () => {
+  const { session } = sessionWith([{ body: loginReply() }]);
+  await session.login({ username: "a", password: "b" });
+
+  const andereInstanz = new Session({
+    baseUrl: "https://andere-tanss.example/backend",
+    fetchImpl: async () => { throw new Error("darf kein Token senden"); },
+  });
+  assert.equal(andereInstanz.exists(), false);
+  assert.equal(andereInstanz.apiToken(), "");
+  assert.equal(session.exists(), false, "die gebundene alte Sitzung wird verworfen");
+});
+
+test("alte ungebundene Speicherstaende werden nicht weiterverwendet", () => {
+  const { session } = sessionWith([{ body: "{}" }]);
+  globalThis.localStorage.setItem("tanss.addin.session", JSON.stringify({
+    employeeId: 42,
+    apiToken: "Bearer alt",
+    refreshToken: "Bearer alt-erneuern",
+    expiresAt: Date.now() + 3600_000,
+  }));
+  assert.equal(session.exists(), false);
+  assert.equal(globalThis.localStorage.getItem("tanss.addin.session"), null);
+});
+
+test("eine Sitzung bleibt bei derselben API nach einem Neuaufbau erhalten", async () => {
+  const { session } = sessionWith([{ body: loginReply() }]);
+  await session.login({ username: "a", password: "b" });
+  const erneut = new Session({ baseUrl: `${BASE}/`, fetchImpl: async () => new Response() });
+  assert.equal(erneut.exists(), true);
+  assert.equal(erneut.apiToken(), "Bearer neu");
+});
+
 test("eine abgelehnte Anmeldung nennt alle drei moeglichen Ursachen", async () => {
   const { session } = sessionWith([{ status: 403, body: JSON.stringify({ content: {} }) }]);
   await assert.rejects(

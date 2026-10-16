@@ -252,8 +252,9 @@ function applyApiBase(merged) {
   const candidates = [fromQuery, merged.apiBase, readStoredApiBase()];
   for (const candidate of candidates) {
     if (!candidate) continue;
-    // Eine relative Angabe meint denselben Ursprung und ist damit immer zulaessig.
-    if (candidate.startsWith("/")) {
+    // Nur ein echter Pfad meint denselben Ursprung. `//fremd.example/...` sieht zwar
+    // wie ein relativer Pfad aus, ist im Browser aber eine netzwerkrelative Fremdadresse.
+    if (isSameOriginApiPath(candidate)) {
       merged.apiBase = candidate.replace(/\/+$/, "");
       return;
     }
@@ -309,6 +310,25 @@ function readStoredApiBase() {
     return String(globalThis.localStorage.getItem(API_BASE_KEY) || "");
   } catch {
     return "";
+  }
+}
+
+/** Ist die Pfadangabe wirklich auf denselben sicheren Ursprung beschraenkt? */
+function isSameOriginApiPath(value) {
+  const candidate = String(value || "").trim();
+  if (!candidate.startsWith("/") || candidate.startsWith("//") || candidate.startsWith("/\\")) {
+    return false;
+  }
+  const href = globalThis.location ? String(globalThis.location.href || "") : "";
+  // Im Outlook-Host ist `location` immer vorhanden. Der Rueckfall dient nur den
+  // isolierten Unit-Tests und akzeptiert weiterhin nie eine netzwerkrelative Adresse.
+  if (!href) return true;
+  try {
+    const pane = new URL(href);
+    const target = new URL(candidate, pane);
+    return pane.protocol === "https:" && target.origin === pane.origin;
+  } catch {
+    return false;
   }
 }
 
