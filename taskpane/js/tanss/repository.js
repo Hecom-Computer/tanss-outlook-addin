@@ -215,7 +215,7 @@ export class TanssRepository {
       }),
       { retry: true, wantMeta: true, signal },
     );
-    const alle = ((content || {}).employees || []).map(employeeRow);
+    const alle = ((content || {}).employees || []).map(employeeRow).filter((row) => !row.inactive);
 
     // Die Sperre steht HIER und nicht in der Maske. Das ist die einzige Tuer, durch die
     // ein Ansprechpartner in einen Ticketentwurf gelangt; was hier nicht herauskommt,
@@ -236,7 +236,9 @@ export class TanssRepository {
     const unverified = gefragt !== null
       && items.some((row) => belongsToCompany(row, gefragt) === null);
 
-    return { items, tooMany: tooMany(meta), unverified };
+    const companies = [...linkedNames(meta, "companies")]
+      .map(([id, name]) => ({ id, name }));
+    return { items, tooMany: tooMany(meta), unverified, companies };
   }
 
   /** Alle hinterlegten Ansprechpartner einer Firma, ohne Volltextsuche. */

@@ -249,6 +249,8 @@ export function companyRow(item) {
     city: str(item.city),
     postCode: str(item.postCode),
     displayId: str(item.displayId),
+    email: str(item.email || item.emailAddress),
+    website: str(item.website),
     inactive: Boolean(item.inactive),
     lockout: Boolean(item.lockout),
     centralType: str(item.centralType).toUpperCase(),
@@ -261,6 +263,7 @@ export function employeeRow(item) {
     id: num(item.id),
     name: str(item.name),
     email: str(item.emailAddress || item.email),
+    inactive: item.active === false || item.inactive === true,
     departmentId: num(item.departmentId) || null,
     companyIds: companyIdsOf(item),
   };

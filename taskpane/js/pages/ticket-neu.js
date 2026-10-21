@@ -246,6 +246,9 @@ export async function render(ctx) {
   const state = {
     company: data.company && data.company.id ? data.company : null,
     confidence: data.company ? String(data.company.confidence || "none") : "none",
+    companyCandidates: Array.isArray(data.companyCandidates) ? data.companyCandidates : [],
+    recognitionReason: data.recognitionReason || "unknown",
+    referencedTickets: Array.isArray(data.referencedTickets) ? data.referencedTickets : [],
     remitter: data.remitter || null,
     contacts: [],
     contactsLoading: false,
@@ -333,14 +336,33 @@ export async function render(ctx) {
   /* ----------------------------------------------------------------- Hinweise */
 
   function confidenceHint() {
-    if (!state.company) return "";
-    if (state.confidence === "address") return T.ticketNeu.companyFromAddress;
-    if (state.confidence === "domain") return T.ticketNeu.companyFromDomain;
+    if (!state.company) {
+      if (state.recognitionReason === "conflict") return T.ticketNeu.companyConflict;
+      if (state.recognitionReason === "ambiguous") return T.ticketNeu.companyAmbiguous;
+      if (state.recognitionReason === "publicDomain") return T.ticketNeu.companyPublicDomain;
+      return T.ticketNeu.companyNotFound;
+    }
+    const sender = message.from ? message.from.address : "";
+    if (state.confidence === "contact") return t("ticketNeu.companyFromContact", { address: sender });
+    if (state.confidence === "address") return t("ticketNeu.companyFromAddress", { address: sender });
+    if (state.confidence === "domain") return t("ticketNeu.companyFromDomain", { domain: sender.split("@")[1] || "" });
+    if (state.confidence === "ticket") return T.ticketNeu.companyFromTicket;
     return "";
   }
 
   function renderNotices() {
     const children = [];
+
+    for (const ticket of state.referencedTickets) {
+      children.push(ui.banner({
+        tone: "info",
+        label: t("ticketNeu.ticketInSubject", {
+          id: ticket.id, title: ticket.title || "", company: ticket.companyName || "",
+        }),
+        actionLabel: T.ticketNeu.similarSwitch,
+        onAction: () => openExistingTicket(ticket.id),
+      }));
+    }
 
     if (state.attachedTo.length > 0) {
       children.push(
@@ -461,6 +483,18 @@ export async function render(ctx) {
           }),
         ]),
         hint ? ui.el("div", { class: "field-hint", text: hint }) : null,
+        !state.company && state.companyCandidates.length > 0
+          ? ui.list({
+              items: state.companyCandidates,
+              renderItem: (company) => ui.listRow({
+                title: companyLabel(company),
+                badgeLabel: company.displayId || "",
+                tag: companyTag(company),
+                subtitle: [company.postCode, company.city].filter(Boolean).join(" "),
+                onClick: () => pickCompany(company),
+              }),
+            })
+          : null,
       ]),
       companySearchBox,
     );
@@ -526,7 +560,14 @@ export async function render(ctx) {
       displayId: company.displayId || "",
     };
     state.confidence = "none";
+    state.recognitionReason = "manual";
+    state.companyCandidates = [];
     state.remitter = null;
+    const sender = message.from ? String(message.from.address || "").trim().toLowerCase() : "";
+    const matching = (Array.isArray(data.remitterCandidates) ? data.remitterCandidates : [])
+      .filter((contact) => String(contact.email || "").trim().toLowerCase() === sender
+        && (contact.companyIds || []).includes(Number(company.id)));
+    if (matching.length === 1) state.remitter = matching[0];
     state.contacts = [];
     state.similar = [];
     state.openTickets = [];

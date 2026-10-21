@@ -16,6 +16,7 @@ import { ApiError } from "../tanss/errors.js";
 import { priorityOrNull } from "../tanss/models.js";
 import { repository, settings, store } from "../runtime.js";
 import { titleFromSubject } from "../text.js";
+import { recognizeCustomer } from "./customer-recognition.js";
 
 export async function ownTickets(_query = {}, { signal } = {}) {
   return repository().ownTickets({ signal });
@@ -24,22 +25,6 @@ export async function ownTickets(_query = {}, { signal } = {}) {
 /** Wie viele aehnliche und wie viele offene Tickets die Vorbelegung mitbringt. */
 const SIMILAR_LIMIT = 5;
 const OPEN_TICKET_LIMIT = 10;
-
-/**
- * Adressen dieser Anbieter gehoeren einer Person, nicht einer Firma.
- *
- * Ohne diese Liste suchte die Firmenaufloesung nach der Domaene eines Freemail-Kontos
- * und faende - bei genuegend Kunden - irgendeine Firma, die zufaellig eine solche
- * Adresse hinterlegt hat. Eine falsch vorbelegte Firma faellt beim schnellen Anlegen
- * niemandem auf, und das Ticket steht danach beim falschen Kunden.
- */
-const PUBLIC_MAIL_DOMAINS = new Set([
-  "gmail.com", "googlemail.com", "gmx.de", "gmx.net", "gmx.at", "gmx.ch",
-  "web.de", "t-online.de", "freenet.de", "outlook.com", "outlook.de",
-  "hotmail.com", "hotmail.de", "live.com", "live.de", "icloud.com", "me.com",
-  "yahoo.com", "yahoo.de", "aol.com", "posteo.de", "mailbox.org", "protonmail.com",
-  "proton.me",
-]);
 
 /* ------------------------------------------------------------- Vorbelegung */
 
@@ -56,12 +41,9 @@ const PUBLIC_MAIL_DOMAINS = new Set([
  * und fallen still aus - ohne sie fehlt eine Bequemlichkeit, nicht die Funktion.
  */
 export async function mailContext(body, { signal } = {}) {
-  const address = String(body.senderAddress || "").trim().toLowerCase();
-
-  const { company, candidates, confidence } = await resolveCompany(address, signal);
+  const { company, candidates, confidence, reason, remitter, remitterCandidates,
+    referencedTickets } = await recognizeCustomer(repository(), body, { signal });
   const companyId = company ? company.id : null;
-
-  const { remitter, remitterCandidates } = await resolveRemitter(address, companyId, signal);
   const options = await ticketOptions({ companyId }, { signal });
   const title = titleFromSubject(body.subject);
 
@@ -75,6 +57,8 @@ export async function mailContext(body, { signal } = {}) {
   return {
     company: company ? { ...company, confidence } : null,
     companyCandidates: candidates,
+    recognitionReason: reason,
+    referencedTickets,
     remitter,
     remitterCandidates,
     title,
@@ -84,59 +68,6 @@ export async function mailContext(body, { signal } = {}) {
     alreadyAttachedTo: [...store().attachedTicketIds(body.internetMessageId)]
       .map((ticketId) => ({ ticketId, attachedAt: null })),
   };
-}
-
-/**
- * Firma aus der Absenderadresse - und wenn das nichts ergibt, aus ihrer Domaene.
- *
- * Uebernommen wird nur ein EINDEUTIGER Treffer. Bei mehreren bleibt die Firma leer und
- * die Maske zeigt die Kandidaten. `confidence` sagt der Oberflaeche, worauf die
- * Vorbelegung beruht - "ueber die Adresse gefunden" ist eine staerkere Aussage als
- * "ueber die Domaene".
- */
-async function resolveCompany(address, signal) {
-  if (!address) return { company: null, candidates: [], confidence: "none" };
-
-  const hits = (await repository().searchCompanies(address, { limit: 25, signal })).items;
-  const exact = hits.filter((item) => item.email && item.email.toLowerCase() === address);
-  if (exact.length === 1) return { company: exact[0], candidates: dedupe(hits), confidence: "address" };
-  if (hits.length === 1) return { company: hits[0], candidates: dedupe(hits), confidence: "address" };
-
-  const domain = address.slice(address.lastIndexOf("@") + 1);
-  if (!domain || PUBLIC_MAIL_DOMAINS.has(domain)) {
-    return { company: null, candidates: dedupe(hits), confidence: "none" };
-  }
-
-  const byDomain = await quiet(
-    async () => (await repository().searchCompanies(domain, { limit: 25, signal })).items,
-    [],
-  );
-  const merged = dedupe([...hits, ...byDomain]);
-  if (hits.length === 0 && byDomain.length === 1) {
-    return { company: byDomain[0], candidates: merged, confidence: "domain" };
-  }
-  return { company: null, candidates: merged, confidence: "none" };
-}
-
-/**
- * Melder aus der Absenderadresse.
- *
- * Gesucht wird ueber dieselbe Flaeche wie fuer die Melderauswahl. Uebernommen wird nur
- * ein eindeutiger Treffer; bei mehreren zeigt die Maske die Kandidaten, statt einen
- * davon zu raten.
- */
-async function resolveRemitter(address, companyId, signal) {
-  if (!address) return { remitter: null, remitterCandidates: [] };
-
-  const found = await quiet(
-    async () => (await repository().searchEmployees(address, { companyId, limit: 25, signal })).items,
-    [],
-  );
-
-  const exact = found.filter((item) => item.email && item.email.toLowerCase() === address);
-  if (exact.length === 1) return { remitter: exact[0], remitterCandidates: found };
-  if (found.length === 1) return { remitter: found[0], remitterCandidates: found };
-  return { remitter: null, remitterCandidates: found };
 }
 
 /** Tickets derselben Firma mit aehnlichem Titel - gegen das doppelt angelegte Ticket. */
@@ -152,15 +83,6 @@ async function open(companyId, signal) {
   const result = await repository().searchTickets("",
     { companyId, limit: OPEN_TICKET_LIMIT, signal });
   return result.items;
-}
-
-/** Kandidatenliste ohne Wiederholungen, Reihenfolge der ersten Nennung. */
-function dedupe(companies) {
-  const seen = new Map();
-  for (const company of companies) {
-    if (!seen.has(company.id)) seen.set(company.id, company);
-  }
-  return [...seen.values()];
 }
 
 /** Fuehrt etwas Entbehrliches aus. Faellt es aus, gilt der Ersatzwert. */

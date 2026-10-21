@@ -413,3 +413,28 @@ test("ohne die E-Mail entsteht kein Ticket", async () => {
   assert.equal(calls.some((c) => c.method === "POST" && c.path === "/api/v1/tickets"), false,
     "es darf nichts geschrieben worden sein");
 });
+
+test("Mailkontext uebernimmt Ansprechpartner und Firmenbeleg ohne Schreibzugriff", async () => {
+  routes = {
+    ...OPTIONEN,
+    "PUT /api/v1/search": {
+      content: {
+        companies: [{ id: 3, name: "Muster GmbH", email: "info@muster.example", website: "https://muster.example" }],
+        employees: [{ id: 7, name: "Anna", email: "anna@muster.example", companies: [3], active: true }],
+        tickets: [],
+      },
+      meta: { linkedEntities: { companies: { 3: { name: "Muster GmbH" } } } },
+    },
+    "PUT /api/v1/tickets": { content: [], meta: {} },
+  };
+  calls.length = 0;
+  const result = await api.post("api/mail/context", {
+    json: { senderAddress: "anna@muster.example", subject: "Drucker defekt" },
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.data.company.id, 3);
+  assert.equal(result.data.company.confidence, "contact");
+  assert.equal(result.data.remitter.id, 7);
+  assert.equal(result.data.company.email, "info@muster.example");
+  assert.equal(calls.some((call) => call.method === "POST" || call.method === "DELETE"), false);
+});
